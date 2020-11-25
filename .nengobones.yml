@@ -1,0 +1,114 @@
+project_name: ProjectNameHere
+pkg_name: package_name
+repo_name: nengo/repository-name
+description: Package description here
+
+copyright_start: 2020
+
+license_rst: {}
+
+contributing_rst: {}
+
+contributors_rst: {}
+
+manifest_in: {}
+
+setup_py:
+  install_req:
+    - numpy>=1.14
+  docs_req:
+    - sphinx>=1.8
+    - jupyter
+    - matplotlib>=1.4
+    - nbsphinx
+    - numpydoc>=0.6
+    - nengo_sphinx_theme>=1.2.0
+  optional_req:
+    - scipy>=0.13
+  tests_req:
+    - matplotlib>=1.4
+    - pytest>=3.6
+    - pytest-allclose
+    - pytest-plt
+    - pytest-rng
+  classifiers:
+    - "Development Status :: 3 - Alpha"
+    - "Framework :: Nengo"
+    - "Intended Audience :: Science/Research"
+    - "License :: Free for non-commercial use"
+    - "Operating System :: OS Independent"
+    - "Programming Language :: Python :: 3 :: Only"
+    - "Programming Language :: Python :: 3.6"
+    - "Programming Language :: Python :: 3.7"
+    - "Programming Language :: Python :: 3.8"
+    - "Topic :: Scientific/Engineering :: Artificial Intelligence"
+
+setup_cfg:
+  pytest:
+    norecursedirs:
+      - "plots"
+    filterwarnings:
+      - always
+      - "ignore::ImportWarning"
+  pylint:
+    disable:
+      - missing-docstring
+      - redefined-outer-name
+    known_third_party:
+      - pytest_allclose
+
+docs_conf_py:
+  intersphinx_mapping:
+    scipy: 'https://docs.scipy.org/doc/scipy/reference'
+    sklearn: 'https://scikit-learn.org/dev'
+  tagmanager_id: GTM-XXXXXXX  # update this
+  extensions:
+    - nengo_sphinx_theme.ext.autoautosummary
+    - nengo_sphinx_theme.ext.resolvedefaults
+    - sphinx.ext.inheritance_diagram
+  doctest_setup:
+    - "import numpy as np"
+    - "if np.__version__ >= '1.14':"
+    - "    np.set_printoptions(legacy='1.13')"
+    - "import matplotlib.pyplot as plt"
+
+travis_yml:
+  python: 3.6
+  global_vars:
+    NUMPY: numpy
+  jobs:
+    - script: static
+    - script: test-coverage
+      test_args: --plots
+      python: 3.5
+    - script: docs
+      apt_install:
+        - graphviz
+        - pandoc
+  pypi_user: __token__
+  deploy_dists:
+    - sdist
+    - bdist_wheel
+
+ci_scripts:
+  - template: static
+  - template: test
+    pip_install:
+      - $NUMPY
+  - template: test
+    output_name: test-coverage
+    pip_install:
+      - $NUMPY
+    coverage: true
+  - template: docs
+    pip_install:
+      - $NUMPY
+      - matplotlib
+  - template: deploy
+
+codecov_yml:
+  abs_target: 100%
+
+pre_commit_config_yaml: {}
+
+pyproject_toml: {}
