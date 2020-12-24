@@ -1,9 +1,9 @@
-project_name: ProjectNameHere
-pkg_name: package_name
-repo_name: nengo/repository-name
-description: Package description here
+project_name: Gyrus
+pkg_name: gyrus
+repo_name: arvoelke/gyrus
+description: Recursively generate large-scale Nengo models using NumPy semantics.
 
-copyright_start: 2020
+copyright_start: 2021
 
 license_rst: {}
 
@@ -15,7 +15,8 @@ manifest_in: {}
 
 setup_py:
   install_req:
-    - numpy>=1.14
+    - numpy>=1.17
+    - nengo>=3.0.0
   docs_req:
     - sphinx>=1.8
     - jupyter
@@ -23,8 +24,6 @@ setup_py:
     - nbsphinx
     - numpydoc>=0.6
     - nengo_sphinx_theme>=1.2.0
-  optional_req:
-    - scipy>=0.13
   tests_req:
     - matplotlib>=1.4
     - pytest>=3.6
@@ -32,7 +31,7 @@ setup_py:
     - pytest-plt
     - pytest-rng
   classifiers:
-    - "Development Status :: 3 - Alpha"
+    - "Development Status :: 2 - Pre-Alpha"
     - "Framework :: Nengo"
     - "Intended Audience :: Science/Research"
     - "License :: Free for non-commercial use"
@@ -61,15 +60,12 @@ docs_conf_py:
   intersphinx_mapping:
     scipy: 'https://docs.scipy.org/doc/scipy/reference'
     sklearn: 'https://scikit-learn.org/dev'
-  tagmanager_id: GTM-XXXXXXX  # update this
   extensions:
     - nengo_sphinx_theme.ext.autoautosummary
     - nengo_sphinx_theme.ext.resolvedefaults
     - sphinx.ext.inheritance_diagram
   doctest_setup:
     - "import numpy as np"
-    - "if np.__version__ >= '1.14':"
-    - "    np.set_printoptions(legacy='1.13')"
     - "import matplotlib.pyplot as plt"
 
 travis_yml:

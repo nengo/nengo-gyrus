@@ -22,10 +22,6 @@ Release history
 0.1.0 (unreleased)
 ==================
 
-*Compatible with Nengo 3.1.0*
+*Compatible with Nengo 3.0.0 and 3.1.0*.
 
-**Added**
-
-- Demonstration entry. (`#1`_)
-
-.. _#1: https://github.com/nengo/repo-name/pull/1
+Initial alpha development version.
