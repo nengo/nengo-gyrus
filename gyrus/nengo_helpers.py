@@ -16,7 +16,7 @@ def explicit_passthrough(size_in):
     # but copying the name and docstring can help with debugging.
     output.__name__ = explicit_passthrough.__name__
     output.__doc__ = explicit_passthrough.__doc__
-    return nengo.Node(output=output, size_in=size_in)
+    return nengo.Node(output=output, size_in=size_in, label=output.__name__)
 
 
 def is_pre(obj):

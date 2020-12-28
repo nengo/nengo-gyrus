@@ -685,12 +685,29 @@ def test_str():
     )
     assert str(stimulus(np.ones((1, 1, 1, 1)))) == "Fold(Fold(Fold(Fold(...))))"
 
+    assert (
+        stimulus(np.ones(3)).join().__str__(max_width=2)
+        == "Join1D(Stimulus(), Stimulus(), ...)"
+    )
+    assert (
+        pre(np.ones(2)).split().__str__(max_depth=2, max_width=2)
+        == "Fold(Slice(...), Slice(...))"
+    )
+
 
 def test_repr():
     assert (
         repr(stimulus([1, 1]) * 3)
         == "Fold([Transforms([Stimulus([])]), Transforms([Stimulus([])])])"
     )
+
+
+def test_label():
+    assert pre(1).label == "Pre()"
+    assert (
+        2 * (stimulus(np.ones(2)) * stimulus(np.ones(2)))
+    ).label == "Fold(Transforms(...), ...)"
+    assert stimulus(1).integrate().label == "Integrate(Stimulus())"
 
 
 def test_convolution():

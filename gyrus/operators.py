@@ -125,9 +125,11 @@ def apply(node, function):
 @vectorize(
     "Decode", configurable=get_params(nengo.Ensemble) - {"dimensions"} | {"seed"}
 )
-def decode(node, function=lambda x: x, *, n_neurons=100, **ens_kwargs):
+def decode(node, function=lambda x: x, *, n_neurons=100, label="Decode", **ens_kwargs):
     """Operator that approximates a function of each output using an Ensemble."""
-    x = nengo.Ensemble(n_neurons=n_neurons, dimensions=node.size_out, **ens_kwargs)
+    x = nengo.Ensemble(
+        n_neurons=n_neurons, dimensions=node.size_out, label=label, **ens_kwargs
+    )
     size_out = validate_function_size(function, input_shape=node.size_out)
     out = nengo.Node(size_in=size_out)
     nengo.Connection(node, x, synapse=None)
@@ -137,7 +139,15 @@ def decode(node, function=lambda x: x, *, n_neurons=100, **ens_kwargs):
 
 @Operator.register_method("multiply")
 @vectorize("Multiply", configurable={"n_neurons", "input_magnitude", "seed"})
-def multiply(node_a, node_b, *, n_neurons=100, input_magnitude=1.0, **net_kwargs):
+def multiply(
+    node_a,
+    node_b,
+    *,
+    n_neurons=100,
+    input_magnitude=1.0,
+    label="Multiply",
+    **net_kwargs,
+):
     """Operator that approximates an element-wise product using a Product network.
 
     ``n_neurons`` is the number of neurons per Ensemble, for which there are two per
@@ -152,8 +162,12 @@ def multiply(node_a, node_b, *, n_neurons=100, input_magnitude=1.0, **net_kwargs
         n_neurons=2 * n_neurons,
         dimensions=node_a.size_out,
         input_magnitude=input_magnitude,
+        label=label,
         **net_kwargs,
     )
+    assert product.output.label == "output"
+    product.output.label = None  # gets set automatically by NengoSimulatorMixin.make
+
     nengo.Connection(node_a, product.input_a, synapse=None)
     nengo.Connection(node_b, product.input_b, synapse=None)
     return product.output
@@ -185,6 +199,13 @@ def integrate(u, integrand=None):
                 f"size_out={u.size_out}"
             )
         nengo.Connection(dot_x, x, synapse=integrator)
+
+        # If op_dot_x.make() recurses back to pre(x), then it can set the label
+        # to Pre() but we'd like it to be set according to str(op) where op is the
+        # current Integrate operator. Setting the label back to None and returning
+        # x will achieve this.
+        if x.label is not None:
+            x.label = None
     return x
 
 

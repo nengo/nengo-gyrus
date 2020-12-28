@@ -53,7 +53,18 @@ class NengoSimulatorMixin:
     reduces to the case of probing a single output.
     """
 
+    # Set defaults for automatic labelling via self.label -> str(self).
+    label_max_depth = 2
+    label_max_width = 1
+
     _network_to_cache = WeakKeyDictionary()
+
+    @property
+    def label(self):
+        """Defines the Nengo label for the result of generate, if applicable."""
+        return self.__str__(
+            max_depth=self.label_max_depth, max_width=self.label_max_width
+        )
 
     @classmethod
     def probeable(cls, x):
@@ -91,6 +102,9 @@ class NengoSimulatorMixin:
             raise ValueError(
                 f"generate is expected to return a probeable object, but got: {output}"
             )
+        # Automatically label the output if it has a label attribute that is None.
+        if getattr(output, "label", "") is None:
+            output.label = self.label
         cache[self] = output
         return output
 

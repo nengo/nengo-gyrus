@@ -47,7 +47,9 @@ class Operator(NengoSimulatorMixin, RegisterOperatorsMixin):
     and the special NumPy method, ``__array_ufunc__``.
     """
 
-    _str_max_depth = 4  # used to limit str printing
+    # Set default recursion depth and width for str(self).
+    _str_max_depth = 4
+    _str_max_width = None
 
     def __init__(self, input_ops):
         if not all(isinstance(op, Operator) for op in input_ops):
@@ -93,13 +95,15 @@ class Operator(NengoSimulatorMixin, RegisterOperatorsMixin):
             f"generate method must be implemented by subclass of type: {type(self)}"
         )
 
-    def __str__(self, max_depth=_str_max_depth):
+    def __str__(self, max_depth=_str_max_depth, max_width=_str_max_width):
         if max_depth <= 1:
             str_input_ops = "..." if len(self.input_ops) else ""
         else:
-            str_input_ops = ", ".join(
-                map(lambda op: op.__str__(max_depth - 1), self.input_ops)
-            )
+            ops = self.input_ops if max_width is None else self.input_ops[:max_width]
+            str_input_ops = ", ".join(map(lambda op: op.__str__(max_depth - 1), ops))
+            if len(ops) < len(self.input_ops):
+                assert max_width is not None
+                str_input_ops += ", ..."
         return f"{type(self).__name__}({str_input_ops})"
 
     def __repr__(self):
