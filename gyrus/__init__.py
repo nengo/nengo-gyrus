@@ -5,7 +5,7 @@ import logging
 from .version import version as __version__
 
 # Gyrus namespace (API).
-from .auto import vectorize
+from .auto import configure, vectorize
 from .base import asoperator, fold
 from .operators import (
     apply,

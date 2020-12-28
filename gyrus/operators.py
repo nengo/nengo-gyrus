@@ -8,11 +8,12 @@ from nengo.utils.numpy import (
     is_number,
 )
 
-from gyrus.auto import vectorize
+from gyrus.auto import Configure, vectorize
 from gyrus.base import asoperator, fold, Fold, lower_folds, Operator
 from gyrus.nengo_helpers import (
     explicit_passthrough,
     get_transform_size_out,
+    get_params,
     is_pre,
     validate_function_size,
 )
@@ -106,7 +107,7 @@ def filter(node, synapse):
 
 @Operator.register_method("apply")
 @vectorize("Apply")
-def apply(node, function=lambda x: x):
+def apply(node, function):
     """Operator that applies a function to each output ideally using a Node."""
     size_out = validate_function_size(function, input_shape=node.size_out)
     # An explicit passthrough is needed here because we are applying a function
@@ -121,12 +122,12 @@ def apply(node, function=lambda x: x):
 
 
 @Operator.register_method("decode")
-@vectorize("Decode")
-def decode(node, function=lambda x: x, n_neurons=100, seed=0, **ens_kwargs):
+@vectorize(
+    "Decode", configurable=get_params(nengo.Ensemble) - {"dimensions"} | {"seed"}
+)
+def decode(node, function=lambda x: x, *, n_neurons=100, **ens_kwargs):
     """Operator that approximates a function of each output using an Ensemble."""
-    x = nengo.Ensemble(  # TODO: make this configurable
-        n_neurons=n_neurons, dimensions=node.size_out, seed=seed, **ens_kwargs
-    )
+    x = nengo.Ensemble(n_neurons=n_neurons, dimensions=node.size_out, **ens_kwargs)
     size_out = validate_function_size(function, input_shape=node.size_out)
     out = nengo.Node(size_in=size_out)
     nengo.Connection(node, x, synapse=None)
@@ -135,22 +136,24 @@ def decode(node, function=lambda x: x, n_neurons=100, seed=0, **ens_kwargs):
 
 
 @Operator.register_method("multiply")
-@vectorize("Multiply")
-def multiply(node_a, node_b, n_neurons=100, input_magnitude=1.0, **ens_kwargs):
-    """Operator that approximates an element-wise product using a Product network."""
+@vectorize("Multiply", configurable={"n_neurons", "input_magnitude", "seed"})
+def multiply(node_a, node_b, *, n_neurons=100, input_magnitude=1.0, **net_kwargs):
+    """Operator that approximates an element-wise product using a Product network.
+
+    ``n_neurons`` is the number of neurons per Ensemble, for which there are two per
+    multiplication.
+    """
     if node_a.size_out != node_b.size_out:
         raise ValueError(
             f"multiply operator size_out of operand a ({node_a.size_out}) does not "
             f"match size_out of operand b ({node_b.size_out})"
         )
     product = nengo.networks.Product(
-        n_neurons,
+        n_neurons=2 * n_neurons,
         dimensions=node_a.size_out,
         input_magnitude=input_magnitude,
-        **ens_kwargs,
+        **net_kwargs,
     )
-    for ens in product.all_ensembles:
-        ens.seed = 0
     nengo.Connection(node_a, product.input_a, synapse=None)
     nengo.Connection(node_b, product.input_b, synapse=None)
     return product.output
@@ -247,10 +250,13 @@ def __ufunc_add(a, b):
     as the size_out of each element in the other operand, such that the same vector can
     be added to every vector that is produced by the other operand.
     """
-    if isinstance(b, Operator):
+    if isinstance(a, Operator) and isinstance(b, Operator):
+        return reduce_transform([a, b], trs=[1, 1], axis=0)
+    elif isinstance(b, Operator):
         a, b = b, a
     # At least one of the two operands has to be an Operator.
     assert isinstance(a, Operator)
+    assert not isinstance(b, Operator)  # due to first if statement
     if is_array_like(b):
         # This can be generalized to handle a wider variety of cases,
         # But, similar to __ufunc_multiply we are keeping the behaviour
@@ -274,7 +280,7 @@ def __ufunc_add(a, b):
             return NotImplemented
     elif not isinstance(b, Operator):
         return NotImplemented
-    return reduce_transform([a, b], trs=[1, 1], axis=0)
+    return np.add(a, b)  # recurse to first if statement
 
 
 @Operator.register_ufunc(np.multiply)

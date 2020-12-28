@@ -4,7 +4,20 @@ import nengo
 from nengo.utils.numpy import rms
 
 from gyrus import broadcast_scalar, fold, join, pre, probe, stimulus
+from gyrus.auto import Configure
 from gyrus.base import Operator
+
+
+def setup_module():
+    # To make the Nengo vs. Gyrus networks match exactly, we fix all seeds to be
+    # zero for all ensembles (gyrus.decode) and product networks (gyrus.multiply).
+    assert "seed" not in Configure._base_config
+    Configure._base_config["seed"] = 0
+
+
+def teardown_module():
+    # Set the configuration back to default/random seed after these unit tests.
+    Configure._base_config.pop("seed")
 
 
 def test_broadcast_scalar():
@@ -304,9 +317,7 @@ def test_np_prod():
         stim1 = nengo.Node(output=input_functions[0])
         stim2 = nengo.Node(output=input_functions[1])
 
-        x = nengo.networks.Product(100, d)
-        for ens in x.all_ensembles:
-            ens.seed = 0
+        x = nengo.networks.Product(200, dimensions=d, seed=0)
 
         nengo.Connection(stim1, x.input_a, synapse=None)
         nengo.Connection(stim2, x.input_b, synapse=None)
@@ -373,7 +384,6 @@ def matrix_vector_gyrus(A, x, t, tau):
 
 
 def matrix_vector_nengo(A, x, t, tau):
-    n_neurons = 100
     assert A.ndim == 3
     assert x.ndim == 1
     assert A.shape[-1] == x.shape[-1]
@@ -392,9 +402,7 @@ def matrix_vector_nengo(A, x, t, tau):
             for j in range(A.shape[1]):
                 y_index = i * A.shape[1] + j
                 for k in range(A.shape[2]):
-                    product = nengo.networks.Product(n_neurons, dimensions=1)
-                    for ens in product.all_ensembles:
-                        ens.seed = 0
+                    product = nengo.networks.Product(200, dimensions=1, seed=0)
                     nengo.Connection(A_stims[i, j, k], product.input_a, synapse=None)
                     nengo.Connection(x_stims[k], product.input_b, synapse=None)
                     nengo.Connection(product.output, y[y_index], synapse=None)
@@ -625,9 +633,7 @@ def test_custom_subnetworks():
         assert node_a.size_out == node_b.size_out
         d = node_a.size_out
 
-        product = nengo.networks.Product(100, dimensions=d)
-        for ens in product.all_ensembles:
-            ens.seed = 0
+        product = nengo.networks.Product(200, dimensions=d, seed=0)
         ens = nengo.Ensemble(100, d, seed=0)
 
         nengo.Connection(node_a, ens, synapse=None)

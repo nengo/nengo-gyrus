@@ -87,3 +87,13 @@ def get_transform_size_out(tr, size_in):
     raise NotImplementedError(
         f"missing logic to infer size_out of transform {tr} given size_in={size_in}"
     )
+
+
+def get_params(cls):
+    """Returns the set of Nengo Parameter names for any type."""
+    params = set()
+    for name in cls.__dict__:
+        attr = getattr(cls, name)
+        if isinstance(attr, nengo.params.Parameter):
+            params.add(name)
+    return params
