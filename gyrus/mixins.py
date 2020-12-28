@@ -109,7 +109,7 @@ class NengoSimulatorMixin:
         cache = self._network_to_cache.setdefault(network, {})
         return self._make(cache=cache)
 
-    def run(self, t, dt=0.001, label=None, seed=None):
+    def run(self, t, dt=0.001, label=None, seed=None, simulator=nengo.Simulator):
         """Generates a Nengo network, then probes, simulates, and returns its data."""
         # Note: Each call to run will regenerate the entire operator graph. Should use
         # the make method if it is desired to reuse the same objects within a single
@@ -124,8 +124,7 @@ class NengoSimulatorMixin:
             assert network is nengo.Network.context[-1]
             accessor = self.probe(self.make())
 
-        # TODO: Configurable simulator.
-        with nengo.Simulator(network, dt=dt) as sim:
+        with simulator(network, dt=dt) as sim:
             sim.run(t)
 
         return accessor(sim)
