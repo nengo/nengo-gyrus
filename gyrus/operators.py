@@ -138,12 +138,15 @@ def decode(node, function=lambda x: x, *, n_neurons=100, label="Decode", **ens_k
 
 
 @Operator.register_method("multiply")
-@vectorize("Multiply", configurable={"n_neurons", "input_magnitude", "seed"})
+@vectorize(
+    "Multiply", configurable={"n_neurons", "neuron_type", "input_magnitude", "seed"}
+)
 def multiply(
     node_a,
     node_b,
     *,
     n_neurons=100,
+    neuron_type=None,
     input_magnitude=1.0,
     label="Multiply",
     **net_kwargs,
@@ -165,6 +168,11 @@ def multiply(
         label=label,
         **net_kwargs,
     )
+    if neuron_type is not None:
+        # Product network doesn't support ensemble kwargs, and setting the config after
+        # the network is created doesn't change it.
+        for ensemble in product.all_ensembles:
+            ensemble.neuron_type = neuron_type
     assert product.output.label == "output"
     product.output.label = None  # gets set automatically by NengoSimulatorMixin.make
 
