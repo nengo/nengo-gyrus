@@ -416,6 +416,24 @@ def __ufunc_power(base, exponent):
     return NotImplemented
 
 
+@Operator.register_ufunc(np.sin)
+def __ufunc_sin(op):
+    """Operator that is an alias for op.decode(np.sin)."""
+    return op.decode(np.sin)
+
+
+@Operator.register_ufunc(np.cos)
+def __ufunc_cos(op):
+    """Operator that is an alias for op.decode(np.cos)."""
+    return op.decode(np.cos)
+
+
+@Operator.register_ufunc(np.square)
+def __ufunc_square(op):
+    """Operator that is an alias for op.decode(np.square)."""
+    return op.decode(np.square)
+
+
 class Join1D(Operator):
     """Operator that joins all outputs in a list of operators into a single output."""
 
