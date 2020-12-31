@@ -44,6 +44,7 @@ docs_req = [
     "seaborn",
     "nengo-dl",
     "nengo-gui",
+    "notebook",
 ]
 optional_req = []
 tests_req = [
