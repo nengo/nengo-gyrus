@@ -1,6 +1,5 @@
-import pytest
-
 import nengo
+import pytest
 
 from gyrus import configure, stimulus
 from gyrus.auto import Configure

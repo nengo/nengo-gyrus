@@ -1,9 +1,8 @@
 from functools import wraps
 from weakref import WeakKeyDictionary
 
-import numpy as np
-
 import nengo
+import numpy as np
 from nengo.utils.numpy import is_iterable
 
 from gyrus.nengo_helpers import is_probeable

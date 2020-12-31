@@ -1,19 +1,14 @@
-import numpy as np
-
 import nengo
+import numpy as np
 from nengo.utils.filter_design import cont2discrete
-from nengo.utils.numpy import (
-    is_array_like,
-    is_iterable,
-    is_number,
-)
+from nengo.utils.numpy import is_array_like, is_iterable, is_number
 
 from gyrus.auto import Configure, vectorize
-from gyrus.base import asoperator, fold, Fold, lower_folds, Operator
+from gyrus.base import Fold, Operator, asoperator, fold, lower_folds
 from gyrus.nengo_helpers import (
     explicit_passthrough,
-    get_transform_size_out,
     get_params,
+    get_transform_size_out,
     is_pre,
     validate_function_size,
 )

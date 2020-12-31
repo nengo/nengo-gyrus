@@ -1,6 +1,5 @@
-import numpy as np
-
 import nengo
+import numpy as np
 from nengo.utils.numpy import rms
 
 from gyrus import broadcast_scalar, fold, join, pre, probe, stimulus

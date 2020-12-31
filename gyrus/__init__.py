@@ -2,8 +2,6 @@
 
 import logging
 
-from .version import version as __version__
-
 # Gyrus namespace (API).
 from .auto import configure, vectorize
 from .base import asoperator, fold
@@ -23,6 +21,7 @@ from .operators import (
     stimulus,
     transform,
 )
+from .version import version as __version__
 
 probe = base.Operator.probe
 register_method = base.Operator.register_method

@@ -1,7 +1,6 @@
 from functools import wraps
 
 import numpy as np
-
 from nengo.utils.numpy import is_array, is_iterable
 
 from gyrus.mixins import NengoSimulatorMixin, RegisterOperatorsMixin

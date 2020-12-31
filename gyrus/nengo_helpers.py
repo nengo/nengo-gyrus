@@ -1,6 +1,5 @@
-import numpy as np
-
 import nengo
+import numpy as np
 from nengo.utils.numpy import is_array_like
 
 
