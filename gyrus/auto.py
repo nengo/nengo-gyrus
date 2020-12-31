@@ -127,7 +127,8 @@ def vectorize(
 
         # Define the function that will be vectorized using np.vectorize.
         def instantiate(*impl_args, **impl_kwargs):
-            # Determine which args and kwargs are Gyrus operators.
+            # Determine which args and kwargs are Gyrus operators, and remember where
+            # they appear in the function signature for use in instance.generate.
             op_indices = [
                 i for i, value in enumerate(impl_args) if isinstance(value, Operator)
             ]
@@ -135,8 +136,6 @@ def vectorize(
                 key for key, value in impl_kwargs.items() if isinstance(value, Operator)
             ]
 
-            # Remember where the operators appear in the function signature
-            # for use in instance.generate.
             input_ops = []
             for op_index in op_indices:
                 input_ops.append(impl_args[op_index])
@@ -293,6 +292,8 @@ def configure(input_op, reset=False, **config):
          root in the graph.
 
       3. The input operators take precedence in left-to-right order.
+
+      4. And so on, recursively (upstream).
 
     Since operators are immutable and form a directed acyclic graph (DAG), these
     rules are unambiguous, and give a consistent configuration setting for every

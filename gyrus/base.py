@@ -42,7 +42,7 @@ class Operator(NengoSimulatorMixin, RegisterOperatorsMixin):
     A number of methods are provided to make it convenient to create operators
     out of other operators, and to generate and run Nengo models that implement the
     dependency graph of any operator and probe its returned output(s). In addition,
-    NumPy ufuncs such as ``np.add`` are handled through the ``NumericOverloadMixin``
+    NumPy ufuncs such as ``np.add`` are handled through the ``RegisterOperatorsMixin``
     and the special NumPy method, ``__array_ufunc__``.
     """
 
