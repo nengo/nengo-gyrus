@@ -3,7 +3,7 @@ import numpy as np
 from nengo.utils.filter_design import cont2discrete
 from nengo.utils.numpy import is_array_like, is_iterable, is_number
 
-from gyrus.auto import Configure, vectorize
+from gyrus.auto import vectorize
 from gyrus.base import Fold, Operator, asoperator, fold, lower_folds
 from gyrus.nengo_helpers import (
     explicit_passthrough,
