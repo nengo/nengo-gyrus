@@ -132,6 +132,30 @@ def decode(node, function=lambda x: x, *, n_neurons=100, label="Decode", **ens_k
     return out
 
 
+@Operator.register_method("neurons")
+@vectorize(
+    "Neurons",
+    configurable=get_params(nengo.Ensemble) - {"dimensions"} | {"seed", "transform"},
+)
+def neurons(
+    node,
+    *,
+    n_neurons=100,
+    transform=nengo.params.Default,
+    label="Neurons",
+    **kwargs,
+):
+    """Operator that linearly projects to a layer of neurons."""
+    # Note: A number of kwargs will essentially be ignored by the Ensemble, such as
+    # encoders, normalize_encoders, eval_points, n_eval_points, and radius.
+    x = nengo.Ensemble(n_neurons=n_neurons, dimensions=1, label=label, **kwargs)
+    # Use the same seed so that if a distribution is provided for the transform then
+    # it will seed that distribution.
+    seed = kwargs.get("seed", None)
+    nengo.Connection(node, x.neurons, transform=transform, seed=seed, synapse=None)
+    return x.neurons
+
+
 @Operator.register_method("multiply")
 @vectorize(
     "Multiply", configurable={"n_neurons", "neuron_type", "input_magnitude", "seed"}

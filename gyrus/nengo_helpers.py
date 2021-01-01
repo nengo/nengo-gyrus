@@ -20,12 +20,14 @@ def explicit_passthrough(size_in):
 
 def is_pre(obj):
     """Returns True iff obj can be used as a pre argument to nengo.Connection."""
-    return isinstance(obj, (nengo.base.NengoObject, nengo.base.ObjView))
+    return isinstance(
+        obj, (nengo.base.NengoObject, nengo.base.ObjView, nengo.ensemble.Neurons)
+    )
 
 
 def is_probeable(obj):
     """Returns True iff obj can be used as an argument to nengo.Probe."""
-    return isinstance(obj, nengo.base.ObjView) or (
+    return isinstance(obj, (nengo.base.ObjView, nengo.ensemble.Neurons)) or (
         isinstance(obj, nengo.base.NengoObject) and hasattr(obj, "probeable")
     )
 

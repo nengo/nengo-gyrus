@@ -14,6 +14,7 @@ from .operators import (
     join,
     lti,
     multiply,
+    neurons,
     pre,
     reduce_transform,
     slice,
