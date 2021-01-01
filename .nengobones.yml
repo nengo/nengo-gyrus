@@ -29,6 +29,8 @@ setup_py:
     - nengo-dl
     - nengo-gui
     - notebook
+  optional_req:
+    - nengo-dl
   tests_req:
     - matplotlib>=1.4
     - pytest>=3.6

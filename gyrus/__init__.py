@@ -23,6 +23,7 @@ from .operators import (
     stimulus,
     transform,
 )
+from .optional import layer, tensor_node
 from .version import version as __version__
 
 probe = base.Operator.probe

@@ -46,7 +46,9 @@ docs_req = [
     "nengo-gui",
     "notebook",
 ]
-optional_req = []
+optional_req = [
+    "nengo-dl",
+]
 tests_req = [
     "matplotlib>=1.4",
     "pytest>=3.6",
