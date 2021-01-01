@@ -81,7 +81,7 @@ user_agent = "gyrus"
 
 project = "Gyrus"
 authors = "Applied Brain Research"
-copyright = "2021-2020 Applied Brain Research"
+copyright = "2021-2021 Applied Brain Research"
 version = ".".join(gyrus.__version__.split(".")[:2])  # Short X.Y version
 release = gyrus.__version__  # Full version, with tags
 
