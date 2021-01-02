@@ -25,3 +25,6 @@ htmlcov
 .pytest_cache/
 .ci/*.sh
 docs/.doctrees
+docs/examples/nengo-dl/*.npz
+docs/examples/nengo-dl/keras_weights*
+docs/examples/nengo-dl/checkpoint
