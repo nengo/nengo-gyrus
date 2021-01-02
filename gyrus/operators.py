@@ -200,6 +200,54 @@ def multiply(
     return product.output
 
 
+@Operator.register_method("convolve")
+@vectorize(
+    "Convolve", configurable={"n_neurons", "neuron_type", "input_magnitude", "seed"}
+)
+def convolve(
+    node_a,
+    node_b,
+    *,
+    n_neurons=100,
+    neuron_type=None,
+    invert_a=False,
+    invert_b=False,
+    input_magnitude=1.0,
+    label="Convolve",
+    **net_kwargs,
+):
+    """Operator that approximates the circular convolution using Product networks.
+
+    ``n_neurons`` is the number of neurons per Ensemble, for which there are two per
+    dimension.
+    """
+    if node_a.size_out != node_b.size_out:
+        raise ValueError(
+            f"convolve operator size_out of operand a ({node_a.size_out}) does not "
+            f"match size_out of operand b ({node_b.size_out})"
+        )
+    convolution = nengo.networks.CircularConvolution(
+        n_neurons=2 * n_neurons,
+        dimensions=node_a.size_out,
+        invert_a=invert_a,
+        invert_b=invert_b,
+        input_magnitude=input_magnitude,
+        label=label,
+        **net_kwargs,
+    )
+    if neuron_type is not None:
+        # CircularConvolution network doesn't support ensemble kwargs, and setting the
+        # config after the network is created doesn't change it.
+        for ensemble in convolution.all_ensembles:
+            ensemble.neuron_type = neuron_type
+    assert convolution.output.label == "output"
+    convolution.output.label = None  # set automatically by NengoSimulatorMixin.make
+
+    nengo.Connection(node_a, convolution.input_a, synapse=None)
+    nengo.Connection(node_b, convolution.input_b, synapse=None)
+    return convolution.output
+
+
 @Operator.register_method("integrate")
 @vectorize("Integrate")
 def integrate(u, integrand=None):

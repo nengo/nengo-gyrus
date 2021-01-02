@@ -8,6 +8,7 @@ from .base import asoperator, fold
 from .operators import (
     apply,
     broadcast_scalar,
+    convolve,
     decode,
     filter,
     integrate,
