@@ -91,9 +91,18 @@ class AutoOperator(Operator):
 
 
 def vectorize(
-    name, bases=(AutoOperator,), configurable=(), *vectorize_args, **vectorize_kwargs
+    impl_or_name,
+    bases=(AutoOperator,),
+    configurable=(),
+    *vectorize_args,
+    **vectorize_kwargs,
 ):
     """Dynamically creates a vectorized operator type with the given implementation.
+
+    The decorator can be applied like ``gyrus.vectorize(name, ...)(impl)`` to specify
+    a name for the created type as well as to provide several other arguments, or as
+    ``gyrus.vectorize(impl)`` as a convenience (in which case the name will be taken
+    from the wrapped function).
 
     More specifically, using this to decorate some Nengo code results in a function
     that consumes some number of Operators or Folds and produces a single Operator or
@@ -116,7 +125,7 @@ def vectorize(
     keyword-only.
     """
 
-    def decorator(impl):
+    def decorator(impl, name):
         # Dynamically create a type for the target operator.
         # This only happens once in total per decorated function.
         dct = {
@@ -197,7 +206,13 @@ def vectorize(
 
         return wrapper
 
-    return decorator
+    if isinstance(impl_or_name, str):
+        # Return a decorator and use the given name.
+        return lambda impl: decorator(impl=impl, name=impl_or_name)
+    else:
+        # Decorate the given implementation. This allows the decorator to be used in the
+        # style of gyrus.vectorize(impl, ...) rather than gyrus.vectorize(...)(impl).
+        return decorator(impl=impl_or_name, name=impl_or_name.__name__)
 
 
 class Configure(Operator):
