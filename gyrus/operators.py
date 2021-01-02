@@ -165,7 +165,7 @@ def multiply(
     node_b,
     *,
     n_neurons=100,
-    neuron_type=None,
+    neuron_type=nengo.params.Default,
     input_magnitude=1.0,
     label="Multiply",
     **net_kwargs,
@@ -187,7 +187,7 @@ def multiply(
         label=label,
         **net_kwargs,
     )
-    if neuron_type is not None:
+    if neuron_type is not nengo.params.Default:
         # Product network doesn't support ensemble kwargs, and setting the config after
         # the network is created doesn't change it.
         for ensemble in product.all_ensembles:
@@ -209,7 +209,7 @@ def convolve(
     node_b,
     *,
     n_neurons=100,
-    neuron_type=None,
+    neuron_type=nengo.params.Default,
     invert_a=False,
     invert_b=False,
     input_magnitude=1.0,
@@ -235,7 +235,7 @@ def convolve(
         label=label,
         **net_kwargs,
     )
-    if neuron_type is not None:
+    if neuron_type is not nengo.params.Default:
         # CircularConvolution network doesn't support ensemble kwargs, and setting the
         # config after the network is created doesn't change it.
         for ensemble in convolution.all_ensembles:
