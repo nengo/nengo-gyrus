@@ -1,7 +1,7 @@
 import nengo
 import numpy as np
 from nengo.utils.filter_design import cont2discrete
-from nengo.utils.numpy import is_array_like, is_iterable, is_number
+from nengo.utils.numpy import is_array, is_array_like, is_iterable, is_number
 
 from gyrus.auto import vectorize
 from gyrus.base import Fold, Operator, asoperator, fold, lower_folds
@@ -610,11 +610,17 @@ class Transforms(Operator):
         """Converts (a*x + b*(y + z + ...)) into (a*x + b*y + b*z + ...)."""
         new_input_ops = []
         new_trs = []
+
+        def _is_number_or_scalar(x):
+            return is_number(x) or (is_array(x) and x.ndim == 0)
+
         for input_op, tr in zip(input_ops, trs):
             if (
                 isinstance(input_op, Transforms)
-                and is_number(tr)
-                and all(is_number(input_op_tr) for input_op_tr in input_op.trs)
+                and _is_number_or_scalar(tr)
+                and all(
+                    _is_number_or_scalar(input_op_tr) for input_op_tr in input_op.trs
+                )
             ):
                 # For simplicity we skip this optimization if the weights are not
                 # scalars. We could include this if we had a way to combine two Nengo
