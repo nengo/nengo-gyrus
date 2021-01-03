@@ -1,14 +1,87 @@
 import nengo
+import numpy as np
 import pytest
 
-from gyrus import configure, stimulus
+from gyrus import configure, fold, pre, stimulus, vectorize
 from gyrus.auto import Configure
+from gyrus.base import Operator
+
+
+def test_invalid_vectorize_op_input():
+    class InvalidInput(Operator):
+        @property
+        def size_out(self):
+            return [1, 1]
+
+    with pytest.raises(ValueError, match="all input_ops produce an integer size_out"):
+        stimulus(InvalidInput([]))
+
+
+def test_invalid_vectorize_op_output():
+    @vectorize
+    def f():
+        pass
+
+    with pytest.raises(ValueError, match="output from generate defines size_out"):
+        f()
+
+
+def test_invalid_vectorize_folds():
+    @vectorize("F", excluded=[0])
+    def f(a):
+        return a
+
+    with pytest.raises(TypeError, match="instantiated with a Fold"):
+        f(stimulus([0, 1]))
+
+
+def test_invalid_vectorize_folds_jagged():
+    @vectorize
+    def f(a):
+        return a
+
+    with pytest.raises(TypeError, match="instantiated with a Fold"):
+        f(fold([stimulus([0, 1]), stimulus(2)]))
 
 
 def test_invalid_parameter():
     stim = stimulus(1)
     with pytest.raises(ValueError, match="not configurable"):
         stim.configure(dimensions=2)
+
+
+def test_vectorize_kwargs():
+    @vectorize("F")
+    def f(node_a, node_b, *, tr=1):
+        """f docstring"""
+        assert node_a.size_out == node_b.size_out
+        out = nengo.Node(size_in=node_a.size_out)
+        nengo.Connection(node_a, out, transform=tr, synapse=None)
+        nengo.Connection(node_b, out, transform=tr, synapse=None)
+        return out
+
+    op = f(pre(1), node_b=pre(2), tr=3)
+    assert type(op).__name__ == "F"
+    assert type(op).__doc__ == "f docstring"
+
+    assert op.run(1, 1).squeeze(axis=1) == 9
+
+
+def test_vectorize_bad_generate():
+    stim = stimulus(0)
+    with pytest.raises(RuntimeError, match="mismatch between number of op_indices"):
+        stim.generate(stim)
+
+
+def test_vectorize_example():
+    def multiply_by_two(x):
+        y = nengo.Node(size_in=x.size_out)
+        nengo.Connection(x, y, transform=2, synapse=None)
+        return y
+
+    x = stimulus([1, 2, 3])
+    y = vectorize(multiply_by_two)(x)
+    assert np.all(np.asarray(y.run(1, dt=1)).squeeze(axis=(1, 2)) == [2, 4, 6])
 
 
 def test_config_basic():

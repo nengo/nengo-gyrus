@@ -86,7 +86,7 @@ class NengoSimulatorMixin:
         # Ensures that if two ops depend on the same op then it doesn't get generated
         # twice (otherwise would create the same ensembles many times over potentially).
         if self in cache:
-            if cache[self] is None:
+            if cache[self] is None:  # pragma: no cover
                 # This should not be possible since operators are meant to be immutable
                 # and so operators can only depend on other operators that have already
                 # been initialized before this one.
@@ -192,7 +192,7 @@ class RegisterOperatorsMixin:
         def decorator(dest_cls):
             if hasattr(cls, method_name):
                 raise ValueError(
-                    f"{cls} class already has already method with name: '{method_name}'"
+                    f"{cls} class already has a method with name: '{method_name}'"
                 )
 
             # Methods such as __getitem__ need to be directly monkeypatched onto the

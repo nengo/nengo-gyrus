@@ -1,10 +1,11 @@
 import nengo
 import numpy as np
+import pytest
 from nengo.utils.numpy import rms
 
-from gyrus import broadcast_scalar, fold, join, pre, probe, stimulus
+from gyrus import broadcast_scalar, convolve, fold, join, pre, probe, stimulus
 from gyrus.auto import Configure
-from gyrus.base import Operator
+from gyrus.operators import Transforms
 
 
 def setup_module():
@@ -29,6 +30,9 @@ def test_broadcast_scalar():
     assert np.all(a12 == [[2, 2, 2]])
     assert np.all(a21 == [[2, 2, 2, 2]])
     assert np.all(a22 == [[2]])
+
+    with pytest.raises(TypeError, match="expected scalar, but got array"):
+        broadcast_scalar(np.eye(3), size_out=(3, 3, 3))
 
 
 def test_communication_channel(tau=0.1):
@@ -217,6 +221,14 @@ def test_join_split():
         assert np.allclose(out[:, :, i, :], data.transpose((1, 2, 0)))
 
 
+def test_join_invalid():
+    with pytest.raises(ValueError, match="expected all input ops to be an Operator"):
+        join([stimulus(np.ones(3)), stimulus(np.ones(2))])
+
+    with pytest.raises(ValueError, match="cannot join zero nodes"):
+        join([])
+
+
 def test_transpose_reshape_squeeze():
     shape = (4, 1, 2, 1, 6)
     data = np.arange(np.prod(shape)).reshape(shape)
@@ -378,6 +390,9 @@ def matrix_vector_gyrus(A, x, t, tau):
     y = (A @ stimulus(x)).run(1, 1)
     assert np.allclose(y_true, np.asarray(y).squeeze(axis=(-2, -1)))
 
+    y = (A.tolist() @ stimulus(x)).run(1, 1)  # invokes __rmatmul__
+    assert np.allclose(y_true, np.asarray(y).squeeze(axis=(-2, -1)))
+
     y = (stimulus(A) @ stimulus(x)).filter(synapse=tau).run(t)
     return np.asarray(y).reshape(y_true.size, -1).T
 
@@ -453,33 +468,6 @@ def test_nengo_interoperability():
         assert np.allclose(y_compare, p_func(sim))
 
 
-def test_make_context():
-    x = stimulus(0).decode()
-
-    with nengo.Network() as model:
-        assert model not in Operator._network_to_cache
-        a = x.make()
-        assert model in Operator._network_to_cache
-        # Test that next two makes are redundant.
-        assert len(model.all_ensembles) == 1
-        b = x.make()
-        c = x.make()
-        assert len(model.all_ensembles) == 1
-
-        with nengo.Network() as subnet:
-            assert subnet not in Operator._network_to_cache
-            d = x.make()
-            assert subnet in Operator._network_to_cache
-
-        assert a is b is c
-        assert c is not d
-
-    # There should be two ensembles, one in model and one in subnet.
-    assert len(model.all_ensembles) == 2
-    assert len(model.ensembles) == 1
-    assert len(subnet.ensembles) == 1
-
-
 def oscillator(hertz):
     radians = 2 * np.pi * hertz
     return [[0, -radians], [radians, 0]], [1, 0]
@@ -514,6 +502,15 @@ def test_oscillator():
     assert np.allclose(sim.data[ens_probe], y)
 
 
+def test_integrand_invalid():
+    u = pre(0)
+    with pytest.raises(TypeError, match="expected integrand to generate a single Node"):
+        u.integrate(integrand=lambda x: fold([x, x]))
+
+    with pytest.raises(TypeError, match="integrand returned Node with size_out=2"):
+        u.integrate(integrand=lambda x: fold([x, x]).join())
+
+
 def test_lti():
     dt = 0.001
 
@@ -533,6 +530,25 @@ def test_lti():
     # x = np.stack([np.cos(phase), np.sin(phase)], axis=-1)
 
     assert np.allclose(x1, x2)
+
+
+def test_lti_invalid():
+    u = pre(np.ones(3))
+    A = -np.eye(2)
+    B = np.ones((2, 3))
+    x = u.lti(system=(A, B))
+
+    with pytest.raises(ValueError, match="must be a square matrix"):
+        u.lti(system=(B, B))
+
+    with pytest.raises(ValueError, match="must be 1D or 2D"):
+        u.lti(system=(A, 0))
+
+    with pytest.raises(ValueError, match="must be an array of length 2"):
+        u.lti(system=(A, B.T))
+
+    with pytest.raises(ValueError, match="to have size_in=3, not size_in=2"):
+        u.lti(system=(A, A))
 
 
 def test_high_dimensional_integrator(plt):
@@ -591,6 +607,67 @@ def test_elementwise_multiply():
     assert np.allclose(a10, a * 10)
 
 
+def test_multiply_invalid():
+    a = pre(np.zeros(2))
+    b = pre(np.zeros(3))
+    with pytest.raises(ValueError, match="multiply operator size_out"):
+        a * b
+
+    with pytest.raises(TypeError, match="multiply size mismatch"):
+        a * [0, 1, 2]
+
+    with pytest.raises(TypeError, match="all returned NotImplemented"):
+        a * np.eye(2)
+
+
+def test_multiply_direct(rng):
+    shape = (2, 1, 3)
+    a = rng.randn(*shape)
+    b = rng.randn(*shape)
+
+    input_a = stimulus(a).configure(neuron_type=nengo.Direct())
+    input_b = stimulus(b)
+
+    y = input_a * input_b
+    with nengo.Network() as model:
+        y.make()
+
+    for ens in model.all_ensembles:
+        assert ens.neuron_type == nengo.Direct()
+    assert len(model.all_ensembles) == 2 * np.prod(shape)
+
+    out = np.asarray(y.run(1, 1))
+    assert np.allclose(out.squeeze(axis=(-2, -1)), a * b)
+
+
+def _numpy_convolve(a, b):
+    return np.fft.irfft(np.fft.rfft(a) * np.fft.rfft(b)).real
+
+
+def test_convolve_direct(rng):
+    dims = 64
+    a = rng.randn(dims)
+    b = rng.randn(dims)
+
+    input_a = pre(a).configure(neuron_type=nengo.Direct())
+    input_b = pre(b)
+
+    y = convolve(input_a, input_b)
+    assert y.size_out == dims
+
+    out = y.run(1, 1).squeeze(axis=0)
+    assert out.shape == (dims,)
+
+    assert np.allclose(out, _numpy_convolve(a, b))
+
+
+def test_convolve_invalid():
+    a = pre(np.zeros(2))
+    b = pre(np.zeros(3))
+    with pytest.raises(ValueError, match="convolve operator size_out"):
+        a.convolve(b)
+
+
 def test_sum_dot():
     A = [[1, 2, 3], [4, 5, 6]]
     x = [7, 8, 9]
@@ -618,6 +695,22 @@ def test_add():
     assert np.allclose(
         ([2, 3, 4] + pre([1, 2, 3])).run(1, 1).squeeze(axis=(0,)), [3, 5, 7]
     )
+
+    a = pre(1)
+    assert a + 0 is 0 + a is a
+
+
+def test_add_invalid():
+    a = pre(np.ones(2))
+
+    with pytest.raises(TypeError, match="add size mismatch"):
+        a + [0, 1, 2]
+
+    with pytest.raises(TypeError, match="all returned NotImplemented"):
+        a + np.eye(2)
+
+    with pytest.raises(TypeError, match="all returned NotImplemented"):
+        a + "b"
 
 
 def test_custom_subnetworks():
@@ -676,31 +769,6 @@ def test_custom_subnetworks():
     assert np.allclose(sim.data[p2], out2)
 
 
-def test_str():
-    assert str(stimulus(np.ones((1, 2)))) == "Fold(Fold(Stimulus(), Stimulus()))"
-    assert str(stimulus(np.ones((1, 1, 1)))) == "Fold(Fold(Fold(Stimulus())))"
-    assert (
-        str(stimulus(np.ones((1, 1, 2)))) == "Fold(Fold(Fold(Stimulus(), Stimulus())))"
-    )
-    assert str(stimulus(np.ones((1, 1, 1, 1)))) == "Fold(Fold(Fold(Fold(...))))"
-
-    assert (
-        stimulus(np.ones(3)).join().__str__(max_width=2)
-        == "Join1D(Stimulus(), Stimulus(), ...)"
-    )
-    assert (
-        pre(np.ones(2)).split().__str__(max_depth=2, max_width=2)
-        == "Fold(Slice(...), Slice(...))"
-    )
-
-
-def test_repr():
-    assert (
-        repr(stimulus([1, 1]) * 3)
-        == "Fold([Transforms([Stimulus([])]), Transforms([Stimulus([])])])"
-    )
-
-
 def test_label():
     assert pre(1).label == "Pre()"
     assert (
@@ -733,6 +801,18 @@ def test_convolution():
     assert np.allclose(sim.data[p], out)
 
 
+def test_rtruediv():
+    a = pre(0)
+    with pytest.raises(TypeError, match="all returned NotImplemented"):
+        1 / a
+
+
+def test_rpow():
+    a = pre(0)
+    with pytest.raises(TypeError, match="all returned NotImplemented"):
+        2 ** a
+
+
 def test_transform():
     twod = stimulus([1, 2]).join()
     assert twod.size_out == 2
@@ -740,3 +820,70 @@ def test_transform():
     assert np.allclose(twod.transform([2, -3]).run(1, 1), [[2, -6]])
     assert np.allclose(twod.transform([[2, -3]]).run(1, 1), [[-4]])
     assert np.allclose(twod.transform([[2, -3], [4, -1]]).run(1, 1), [[-4, 2]])
+
+
+def test_transform_invalid():
+    with pytest.raises(TypeError, match="must be a Fold"):
+        Transforms(pre(0), [1])
+
+    with pytest.raises(
+        ValueError,
+        match=r"input operators \(2\) must equal the number of transforms \(3\)",
+    ):
+        Transforms(stimulus([2, 2]), np.ones(3))
+
+    with pytest.raises(ValueError, match="expected a Fold with only a single axis"):
+        Transforms(stimulus(np.eye(2)), np.ones(2))
+
+    with pytest.raises(ValueError, match="input_ops must have all the same size"):
+        Transforms(fold([pre(1), pre([1, 1])]), np.ones(2))
+
+
+def test_transform_associativity():
+    a = pre(1)
+    b = pre(2)
+    c = pre(3)
+    out = 2 * (3 * a + 4 * (b + 5 * c))
+    # == 6 * a + 8 * b + 40 * c
+
+    with nengo.Network() as model:
+        p = nengo.Probe(out.make())
+
+    with nengo.Simulator(model) as sim:
+        sim.step()
+
+    assert sim.data[p].squeeze(axis=-1) == 6 * 1 + 8 * 2 + 40 * 3
+
+    transforms = []
+    for conn in model.all_connections:
+        if conn.transform is not nengo.params.Default:
+            transforms.append(conn.transform.init)
+    assert np.all(transforms == [6, 8, 40])
+
+
+def test_neurons():
+    a = pre(1).configure(seed=0)
+    tr = nengo.dists.Uniform(-1, 1)
+    x = a.neurons(transform=tr)
+    y = x.run(1)
+
+    with nengo.Network() as model:
+        stim = nengo.Node(1)
+        ens = nengo.Ensemble(100, 1, seed=0)
+        nengo.Connection(stim, ens.neurons, transform=tr, seed=0, synapse=None)
+        p = nengo.Probe(ens.neurons)
+
+    with nengo.Simulator(model) as sim:
+        sim.run(1)
+
+    assert np.allclose(y, sim.data[p])
+
+
+@pytest.mark.parametrize("ufunc", [np.sin, np.cos, np.square])
+def test_direct_ufuncs(ufunc):
+    u = np.linspace(-1, 1, 1000)
+    x = stimulus(nengo.processes.PresentInput(u, 1e-3)).configure(
+        neuron_type=nengo.Direct()
+    )
+    y = ufunc(x)
+    assert np.allclose(y.run(1).squeeze(axis=-1), ufunc(u))

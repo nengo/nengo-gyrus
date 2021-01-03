@@ -516,14 +516,14 @@ class Join1D(Operator):
                 f"expected all input ops to be an Operator but not a Fold, but got: "
                 f"{self.input_ops}"
             )
+        if not len(self.input_ops):
+            raise ValueError("cannot join zero nodes")
 
     @cached_property
     def size_out(self):
         return sum(op.size_out for op in self.input_ops)
 
     def generate(self, *nodes):
-        if not nodes:
-            raise ValueError("cannot join zero nodes")
         size_out = sum(node.size_out for node in nodes)
         y = nengo.Node(size_in=size_out)
         i = 0
@@ -578,7 +578,7 @@ class Transforms(Operator):
         if len(input_ops) != len(trs):
             raise ValueError(
                 f"number of input operators ({len(input_ops)}) must equal the number "
-                f"of reduce_transform ({len(trs)})"
+                f"of transforms ({len(trs)})"
             )
 
         if input_ops.ndim != 1:
