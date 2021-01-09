@@ -201,7 +201,7 @@ class Fold(Operator):
     def __len__(self):
         # Note: Defining __len__ and __getitem__ is sufficient for @np.vectorize
         # to automatically vectorize across instances of this type. But __getitem__
-        # on its own (as in the Operator base class) is insufficient.
+        # on its own (as in the base class; see operators.slice) is insufficient.
         return len(self.input_ops)
 
 
