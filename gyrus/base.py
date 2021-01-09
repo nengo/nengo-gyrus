@@ -176,6 +176,10 @@ class Fold(Operator):
     def T(self):
         return np.transpose(self)  # handled via __array_function__
 
+    def flatten(self, order="C"):
+        """Return a copy of the Fold collapsed into one dimension."""
+        return fold(self.array.flatten(order=order))
+
     @property
     def ndim(self):
         return self.array.ndim

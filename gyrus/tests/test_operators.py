@@ -254,6 +254,15 @@ def test_transpose():
     assert np.allclose(stim.T.run(1, 1), data.T[..., None, None])
 
 
+def test_flatten():
+    data = np.arange(2 * 3 * 4).reshape((2, 3, 4))
+    stim = stimulus(data)
+    assert stim.shape == data.shape
+    flat = stim.flatten()
+    assert flat.shape == (data.size,)
+    assert np.allclose(flat.run(1, 1), data.flatten()[:, None, None])
+
+
 def test_multidimensional_function():
     input_function = lambda t: [t, -np.sqrt(t), t ** 3]
     n_neurons = 2000
