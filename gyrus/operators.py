@@ -681,18 +681,23 @@ def reduce_transform(input_ops, trs, axis=-1):
     )
 
 
-# This is a non-exhaustive list of NumPy functions that can be handled automatically
-# through Operator.__array_ufunc__; these array functions simply defer to the
-# underlying NumPy version to do all the heavy lifting. That is, __array_function__
+# This is a non-exhaustive whitelist of NumPy array functions that can be handled
+# automatically through Fold.__array_function__; these array functions simply defer to
+# the underlying NumPy version to do all the heavy lifting. That is, __array_function__
 # only handles Fold conversion to and from the underlying implementation. The
 # __array_ufunc__ operations on the other hand delegate to Gyrus operators that
 # generate the actual Nengo objects.
-Fold.register_method("apply_along_axis")(np.apply_along_axis)
-Fold.register_method("dot")(np.dot)
-Fold.register_method("mean")(np.mean)
-Fold.register_method("outer")(np.outer)
-Fold.register_method("prod")(np.prod)
-Fold.register_method("reshape")(np.reshape)
-Fold.register_method("squeeze")(np.squeeze)
-Fold.register_method("sum")(np.sum)
-Fold.register_method("transpose")(np.transpose)
+_Fold_array_functions = (
+    np.apply_along_axis,
+    np.dot,
+    np.mean,
+    np.outer,
+    np.prod,
+    np.reshape,
+    np.squeeze,
+    np.sum,
+    np.transpose,
+)
+
+for array_function in _Fold_array_functions:
+    Fold.register_method(array_function.__name__)(array_function)
