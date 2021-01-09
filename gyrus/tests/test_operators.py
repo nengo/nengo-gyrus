@@ -178,7 +178,7 @@ def test_shapes():
     assert np.all(y.run(1, dt=1) == np.arange(10))
 
 
-def test_join_split():
+def test_bundle_unbundle():
     data = np.arange(3 * 4 * 5).reshape(3, 4, 5)
     stim = stimulus(data)
     t = 6
@@ -208,6 +208,12 @@ def test_join_split():
     assert np.allclose(out_check, out)
     for i in range(t):
         assert np.allclose(out[:, :, i, :], data.transpose((0, 2, 1)))
+
+    y_split = y.unbundle(axis=-2)
+    assert y_split.shape == (3, 4, 5)
+    out_check = np.asarray(y_split.run(t, 1)).squeeze(axis=-1)
+    for i in range(t):
+        assert np.allclose(out_check[..., i], data)
 
     y = bundle(stim, axis=0)
     assert y.shape == (4, 5)

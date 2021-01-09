@@ -546,8 +546,8 @@ def bundle(input_ops, axis=-1):
     """Operator that joins all of the outputs along a given axis into a single output.
 
     This reduces the dimensionality of the Fold by one by applying ``Bundle1D`` along
-    the chosen axis. When ``axis=-1`` (the default), and all elements have
-    ``size_out==1``, this is the inverse of ``input_ops.unbundle()``.
+    the chosen axis. When each element has a ``size_out`` of 1, this is the inverse of
+    unbundle (when called with the same axis).
     """
     # This together with Bundle1D is a reasonably compact example of how to define a
     # custom operator without using @gyrus.vectorize. Instead of np.apply_along_axis
@@ -556,20 +556,25 @@ def bundle(input_ops, axis=-1):
 
 
 @Operator.register_method("unbundle")
-def unbundle(input_ops):
+def unbundle(input_ops, axis=-1):
     """Operator that splits each output into a Fold of one-dimensional outputs.
 
-    The result is such that ``input_ops.unbundle().bundle()`` produces the same outputs
-    as ``input_ops``.
+    The expands the dimensionality by creating a Fold along the given axis, containing
+    the outputs of each element. This is the inverse of bundle (when called with the
+    same axis).
     """
 
-    def _split(input_op):
+    def _unbundle(input_op):
         assert input_op.ndim == 0
         # This tuple unpacking works because the Operator is iterable via __getitem__.
         # This produces a Slice operator.
         return fold([*input_op])
 
-    return fold(np.vectorize(_split, otypes=[Fold])(input_ops))
+    return np.moveaxis(
+        fold(np.vectorize(_unbundle, otypes=[Fold])(input_ops)),
+        source=-1,
+        destination=axis,
+    )
 
 
 class Transforms(Operator):
@@ -691,6 +696,7 @@ _Fold_array_functions = (
     np.apply_along_axis,
     np.dot,
     np.mean,
+    np.moveaxis,
     np.outer,
     np.prod,
     np.reshape,
