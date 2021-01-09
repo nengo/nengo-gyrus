@@ -176,7 +176,7 @@ class Fold(Operator):
     def ndim(self):
         return self.array.ndim
 
-    @cached_property
+    @property
     def shape(self):
         return self.array.shape
 
