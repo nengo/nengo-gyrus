@@ -172,6 +172,10 @@ class Fold(Operator):
         arr.flags.writeable = False  # safety precaution
         return arr
 
+    @cached_property
+    def T(self):
+        return np.transpose(self)  # handled via __array_function__
+
     @property
     def ndim(self):
         return self.array.ndim

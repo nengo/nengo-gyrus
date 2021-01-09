@@ -247,6 +247,13 @@ def test_transpose_reshape_squeeze():
     assert np.allclose(data.squeeze(axis=axis), out)
 
 
+def test_transpose():
+    data = np.arange(3 * 4).reshape((3, 4))
+    stim = stimulus(data)
+    assert stim.T.shape == np.transpose(stim).shape == (4, 3)
+    assert np.allclose(stim.T.run(1, 1), data.T[..., None, None])
+
+
 def test_multidimensional_function():
     input_function = lambda t: [t, -np.sqrt(t), t ** 3]
     n_neurons = 2000
