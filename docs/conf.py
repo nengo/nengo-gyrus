@@ -54,14 +54,14 @@ nbsphinx_timeout = -1
 
 # -- notfound.extension
 notfound_template = "404.html"
-notfound_urls_prefix = "/gyrus/"
+notfound_urls_prefix = "/nengo-gyrus/"
 
 # -- numpydoc config
 numpydoc_show_class_members = False
 
 # -- nengo_sphinx_theme.ext.sourcelinks
 sourcelinks_module = "gyrus"
-sourcelinks_url = "https://github.com/arvoelke/gyrus"
+sourcelinks_url = "https://github.com/nengo-labs/nengo-gyrus"
 
 # -- sphinx
 nitpicky = True
@@ -79,7 +79,7 @@ default_role = "py:obj"
 pygments_style = "sphinx"
 user_agent = "gyrus"
 
-project = "Gyrus"
+project = "NengoGyrus"
 authors = "Applied Brain Research"
 copyright = "2021-2021 Applied Brain Research"
 version = ".".join(gyrus.__version__.split(".")[:2])  # Short X.Y version
@@ -89,8 +89,8 @@ release = gyrus.__version__  # Full version, with tags
 templates_path = ["_templates"]
 html_static_path = ["_static"]
 html_theme = "nengo_sphinx_theme"
-html_title = f"Gyrus {release} docs"
-htmlhelp_basename = "Gyrus"
+html_title = f"NengoGyrus {release} docs"
+htmlhelp_basename = "NengoGyrus"
 html_last_updated_fmt = ""  # Default output format (suppressed)
 html_show_sphinx = False
 html_favicon = str(pathlib.Path("_static", "favicon.ico"))

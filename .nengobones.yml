@@ -1,6 +1,6 @@
-project_name: Gyrus
+project_name: NengoGyrus
 pkg_name: gyrus
-repo_name: arvoelke/gyrus
+repo_name: nengo-labs/nengo-gyrus
 description: Recursively generate large-scale Nengo models using NumPy semantics.
 
 copyright_start: 2021

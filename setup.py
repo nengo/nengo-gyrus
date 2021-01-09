@@ -63,7 +63,7 @@ setup(
     author="Applied Brain Research",
     author_email="info@appliedbrainresearch.com",
     packages=find_packages(),
-    url="https://www.nengo.ai/gyrus",
+    url="https://labs.nengo.ai/nengo-gyrus",
     include_package_data=False,
     license="Free for non-commercial use",
     description="Recursively generate large-scale Nengo models using NumPy semantics.",
