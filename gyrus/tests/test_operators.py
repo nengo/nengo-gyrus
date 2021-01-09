@@ -879,7 +879,7 @@ def test_neurons():
     assert np.allclose(y, sim.data[p])
 
 
-@pytest.mark.parametrize("ufunc", [np.sin, np.cos, np.square])
+@pytest.mark.parametrize("ufunc", [np.sin, np.cos, np.tanh, np.square])
 def test_direct_ufuncs(ufunc):
     u = np.linspace(-1, 1, 1000)
     x = stimulus(nengo.processes.PresentInput(u, 1e-3)).configure(

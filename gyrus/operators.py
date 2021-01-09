@@ -500,6 +500,12 @@ def __ufunc_cos(op):
     return op.decode(np.cos)
 
 
+@Operator.register_ufunc(np.tanh)
+def __ufunc_tanh(op):
+    """Operator that is an alias for op.decode(np.tanh)."""
+    return op.decode(np.tanh)
+
+
 @Operator.register_ufunc(np.square)
 def __ufunc_square(op):
     """Operator that is an alias for op.decode(np.square)."""
