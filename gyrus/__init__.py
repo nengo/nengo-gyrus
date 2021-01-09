@@ -8,20 +8,20 @@ from .base import asoperator, fold
 from .operators import (
     apply,
     broadcast_scalar,
+    bundle,
     convolve,
     decode,
     filter,
     integrate,
-    join,
     lti,
     multiply,
     neurons,
     pre,
     reduce_transform,
     slice,
-    split,
     stimulus,
     transform,
+    unbundle,
 )
 from .optional import layer, tensor_node
 from .version import version as __version__

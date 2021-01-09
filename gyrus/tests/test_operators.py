@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 from nengo.utils.numpy import rms
 
-from gyrus import broadcast_scalar, convolve, fold, join, pre, probe, stimulus
+from gyrus import broadcast_scalar, bundle, convolve, fold, pre, probe, stimulus
 from gyrus.auto import Configure
 from gyrus.operators import Transforms
 
@@ -167,12 +167,12 @@ def test_shapes():
     assert np.all([inp.size_out for inp in x] == [3, 1, 4, 2])
     assert np.all(x.size_out == [3, 1, 4, 2])
 
-    y = x.join()
+    y = x.bundle()
     assert y.size_out == 10
     assert y[3:].size_out == 7
     assert y[5].size_out == 1
 
-    y2 = x[:2].join()
+    y2 = x[:2].bundle()
     assert y2.size_out == 4
 
     assert np.all(y.run(1, dt=1) == np.arange(10))
@@ -183,12 +183,12 @@ def test_join_split():
     stim = stimulus(data)
     t = 6
 
-    y = stim.join()
+    y = stim.bundle()
     assert y.shape == (3, 4)
     out = np.asarray(y.run(t, 1))
-    y_split = y.split()
+    y_split = y.unbundle()
     assert y_split.shape == (3, 4, 5)
-    y_check = y_split.join()
+    y_check = y_split.bundle()
     assert y_check.shape == (3, 4)
     out_check = np.asarray(y_check.run(t, 1))
     assert np.allclose(out, out_check)
@@ -198,10 +198,10 @@ def test_join_split():
     for i in range(t):
         assert np.allclose(out[:, :, i, :], data)
 
-    y = join(stim, axis=-2)
+    y = bundle(stim, axis=-2)
     assert y.shape == (3, 5)
     out = np.asarray(y.run(t, 1))
-    y_split = y.split()
+    y_split = y.unbundle()
     assert y_split.shape == (3, 5, 4)
     out_check = np.asarray(y_split.run(t, 1)).squeeze(axis=-1).transpose((0, 1, 3, 2))
     assert out.shape == (3, 5, t, 4)
@@ -209,10 +209,10 @@ def test_join_split():
     for i in range(t):
         assert np.allclose(out[:, :, i, :], data.transpose((0, 2, 1)))
 
-    y = join(stim, axis=0)
+    y = bundle(stim, axis=0)
     assert y.shape == (4, 5)
     out = np.asarray(y.run(t, 1))
-    y_split = y.split()
+    y_split = y.unbundle()
     assert y_split.shape == (4, 5, 3)
     out_check = np.asarray(y_split.run(t, 1)).squeeze(axis=-1).transpose((0, 1, 3, 2))
     assert out.shape == (4, 5, t, 3)
@@ -223,10 +223,10 @@ def test_join_split():
 
 def test_join_invalid():
     with pytest.raises(ValueError, match="expected all input ops to be an Operator"):
-        join([stimulus(np.ones(3)), stimulus(np.ones(2))])
+        bundle([stimulus(np.ones(3)), stimulus(np.ones(2))])
 
-    with pytest.raises(ValueError, match="cannot join zero nodes"):
-        join([])
+    with pytest.raises(ValueError, match="cannot bundle zero nodes"):
+        bundle([])
 
 
 def test_transpose_reshape_squeeze():
@@ -524,7 +524,7 @@ def test_integrand_invalid():
         u.integrate(integrand=lambda x: fold([x, x]))
 
     with pytest.raises(TypeError, match="integrand returned Node with size_out=2"):
-        u.integrate(integrand=lambda x: fold([x, x]).join())
+        u.integrate(integrand=lambda x: fold([x, x]).bundle())
 
 
 def test_lti():
@@ -695,12 +695,12 @@ def test_sum_dot():
     out1 = np.asarray(y1.run(1, 1)).squeeze(axis=(-2, -1))
     assert np.allclose(out1, y_check)
 
-    y2 = np.sum((stimulus(A).join() * np.asarray(x)).split(), axis=1)
+    y2 = np.sum((stimulus(A).bundle() * np.asarray(x)).unbundle(), axis=1)
     assert y2.shape == (2,)
     out2 = np.asarray(y2.run(1, 1)).squeeze(axis=(-2, -1))
     assert np.allclose(out1, out2)
 
-    y3 = (stimulus(A).join() * np.asarray(x)).transform(np.ones((1, len(x))))
+    y3 = (stimulus(A).bundle() * np.asarray(x)).transform(np.ones((1, len(x))))
     assert y3.shape == (2,)
     out3 = np.asarray(y3.run(1, 1)).squeeze(axis=(-2, -1))
     assert np.allclose(out2, out3)
@@ -830,7 +830,7 @@ def test_rpow():
 
 
 def test_transform():
-    twod = stimulus([1, 2]).join()
+    twod = stimulus([1, 2]).bundle()
     assert twod.size_out == 2
     assert np.all(twod.run(1, 1) == [[1, 2]])
     assert np.allclose(twod.transform([2, -3]).run(1, 1), [[2, -6]])

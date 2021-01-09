@@ -31,7 +31,7 @@ class AutoOperator(Operator):
 
         # Eager validation is critical in at least one subtle circumstance: for
         # instance, since __getitem__ overloads the Operator, all base operators
-        # automatically support iteration. Then, when the split operator (for instance)
+        # automatically support iteration. Then, when the unbundle operator (for instance)
         # iterates over an operator it will loop infinitely, as each __getitem__ will
         # create a new operator without raising IndexError. To stop the iteration, we
         # need the IndexError to be raised, which happens if the underlying

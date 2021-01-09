@@ -512,7 +512,7 @@ def __ufunc_square(op):
     return op.decode(np.square)
 
 
-class Join1D(Operator):
+class Bundle1D(Operator):
     """Operator that joins all outputs in a list of operators into a single output."""
 
     def __init__(self, input_ops):
@@ -523,7 +523,7 @@ class Join1D(Operator):
                 f"{self.input_ops}"
             )
         if not len(self.input_ops):
-            raise ValueError("cannot join zero nodes")
+            raise ValueError("cannot bundle zero nodes")
 
     @cached_property
     def size_out(self):
@@ -541,26 +541,26 @@ class Join1D(Operator):
         return y
 
 
-@Fold.register_method("join")
-def join(input_ops, axis=-1):
+@Fold.register_method("bundle")
+def bundle(input_ops, axis=-1):
     """Operator that joins all of the outputs along a given axis into a single output.
 
-    This reduces the dimensionality of the Fold by one by applying ``Join1D`` along the
-    chosen axis. When ``axis=-1`` (the default), and all elements have ``size_out==1``,
-    this is the inverse of ``input_ops.split()``.
+    This reduces the dimensionality of the Fold by one by applying ``Bundle1D`` along
+    the chosen axis. When ``axis=-1`` (the default), and all elements have
+    ``size_out==1``, this is the inverse of ``input_ops.unbundle()``.
     """
-    # This together with Join1D is a reasonably compact example of how to define a
+    # This together with Bundle1D is a reasonably compact example of how to define a
     # custom operator without using @gyrus.vectorize. Instead of np.apply_along_axis
     # many custom operators might apply np.vectorize.
-    return asoperator(np.apply_along_axis(func1d=Join1D, axis=axis, arr=input_ops))
+    return asoperator(np.apply_along_axis(func1d=Bundle1D, axis=axis, arr=input_ops))
 
 
-@Operator.register_method("split")
-def split(input_ops):
+@Operator.register_method("unbundle")
+def unbundle(input_ops):
     """Operator that splits each output into a Fold of one-dimensional outputs.
 
-    The result is such that ``input_ops.split().join()`` produces the same outputs as
-    ``input_ops``.
+    The result is such that ``input_ops.unbundle().bundle()`` produces the same outputs
+    as ``input_ops``.
     """
 
     def _split(input_op):

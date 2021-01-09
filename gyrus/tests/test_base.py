@@ -91,11 +91,11 @@ def test_str():
     assert str(stimulus(np.ones((1, 1, 1, 1)))) == "Fold(Fold(Fold(Fold(...))))"
 
     assert (
-        stimulus(np.ones(3)).join().__str__(max_width=2)
-        == "Join1D(Stimulus(), Stimulus(), ...)"
+        stimulus(np.ones(3)).bundle().__str__(max_width=2)
+        == "Bundle1D(Stimulus(), Stimulus(), ...)"
     )
     assert (
-        pre(np.ones(2)).split().__str__(max_depth=2, max_width=2)
+        pre(np.ones(2)).unbundle().__str__(max_depth=2, max_width=2)
         == "Fold(Slice(...), Slice(...))"
     )
 
