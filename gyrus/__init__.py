@@ -5,6 +5,7 @@ import logging
 # Gyrus namespace (API).
 from .auto import configure, vectorize
 from .base import asoperator, fold
+from .neurons import Parabola
 from .operators import (
     apply,
     broadcast_scalar,
