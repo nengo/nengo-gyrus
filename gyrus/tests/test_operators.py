@@ -546,6 +546,32 @@ def test_integrand_invalid():
         u.integrate(integrand=lambda x: fold([x, x]).bundle())
 
 
+def test_integrate_synapse():
+    synapse = 0.1
+    stim = stimulus(0.5)
+    x1 = stim.integrate(synapse=synapse)
+    x2 = stim.filter(synapse=synapse)
+
+    assert np.allclose(x1.run(1), x2.run(1))
+
+
+def test_integrate_fold(rng):
+    stable_points = rng.randn(3, 2)
+    t = 100
+    dt = 0.01
+
+    def integrand(x):
+        assert x.shape == stable_points.shape
+        assert isinstance(x, Fold)
+        return stable_points - x
+
+    u = stimuli(np.zeros_like(stable_points)).integrate_fold(integrand=integrand)
+    out = np.asarray(u.run(t, dt))
+
+    assert out.shape == stable_points.shape + (int(t / dt), 1)
+    assert np.allclose(out.squeeze(axis=-1)[..., -1], stable_points)
+
+
 def test_lti():
     dt = 0.001
 

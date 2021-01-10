@@ -14,6 +14,7 @@ from .operators import (
     decode,
     filter,
     integrate,
+    integrate_fold,
     lti,
     multiply,
     neurons,

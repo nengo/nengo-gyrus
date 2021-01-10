@@ -250,12 +250,13 @@ def convolve(
 
 @Operator.register_method("integrate")
 @vectorize("Integrate")
-def integrate(u, integrand=None):
-    r"""Operator that solves \dot{x} = u + integrand(x) using Euler's method."""
+def integrate(u, integrand=None, synapse=None):
+    r"""Operator that solves \dot{x} = u + integrand(x)."""
     x = nengo.Node(size_in=u.size_out)
-    integrator = nengo.synapses.LinearFilter([1], [1, 0])
+    if synapse is None:
+        synapse = nengo.synapses.LinearFilter([1], [1, 0])  # 1/s integrator
 
-    nengo.Connection(u, x, synapse=integrator)
+    nengo.Connection(u, x, synapse=synapse)
     if integrand is not None:
         # Note: The operator that integrand(...) produces will be generated into the
         # current Nengo context, including all of its dependencies. This even includes
@@ -273,7 +274,7 @@ def integrate(u, integrand=None):
                 f"integrand returned Node with size_out={dot_x.size_out} but expected "
                 f"size_out={u.size_out}"
             )
-        nengo.Connection(dot_x, x, synapse=integrator)
+        nengo.Connection(dot_x, x, synapse=synapse)
 
         # If op_dot_x.make() recurses back to stimulus(x), then it can set the label
         # to Stimulus() but we'd like it to be set according to str(op) where op is the
@@ -282,6 +283,33 @@ def integrate(u, integrand=None):
         if x.label is not None:
             x.label = None
     return x
+
+
+@Fold.register_method("integrate_fold")
+def integrate_fold(u, integrand=None, synapse=None):
+    r"""Operator that solves \dot{x} = u + integrand(x) where x is a Fold.
+
+    This is the same as integrate, except rather than vectorizing across ``u``
+    and applying the integrand element-wise to each element of the fold, the entire
+    fold is treated as a single element to integrate over. That is, the ``x``
+    passed to the integrand is a fold with the same shape as ``u``.
+    """
+    if not isinstance(u, Fold) or np.any(u.size_out != 1):
+        raise NotImplementedError(
+            f"u ({u}) must be a Fold with all elements having size_out==1"
+        )
+    return (
+        u.flatten()
+        .bundle()
+        .integrate(
+            integrand=lambda x: integrand(x.unbundle().reshape(u.shape))
+            .flatten()
+            .bundle(),
+            synapse=synapse,
+        )
+        .unbundle()
+        .reshape(u.shape)
+    )
 
 
 @Operator.register_method("lti")
