@@ -5,7 +5,7 @@ from nengo.utils.numpy import is_array, rms
 
 from gyrus import broadcast_scalar, bundle, convolve, fold, probe, stimuli, stimulus
 from gyrus.auto import Configure
-from gyrus.base import Operator
+from gyrus.base import Fold, Operator
 from gyrus.operators import Transforms, _Fold_array_functions
 
 
@@ -37,6 +37,15 @@ def test_broadcast_scalar():
 
     with pytest.raises(TypeError, match="expected scalar, but got array"):
         broadcast_scalar(np.eye(3), size_out=(3, 3, 3))
+
+
+def test_broadcast_to():
+    a = stimuli([1, 2])
+    b = np.broadcast_to(a, (3, 2))
+    assert isinstance(b, Fold)
+    assert b.shape == (3, 2)
+    assert b[0, 0] is b[1, 0] is b[2, 0]
+    assert b[0, 1] is b[1, 1] is b[2, 1]
 
 
 def test_communication_channel(tau=0.1):
