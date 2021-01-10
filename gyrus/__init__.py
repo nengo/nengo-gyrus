@@ -24,7 +24,7 @@ from .operators import (
     transform,
     unbundle,
 )
-from .optional import layer, tensor_node
+from .optional import KerasOptimizerSynapse, layer, tensor_node
 from .version import version as __version__
 
 probe = base.Operator.probe

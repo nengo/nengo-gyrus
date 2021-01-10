@@ -1,7 +1,9 @@
+import nengo
 import numpy as np
 import pytest
 
-from gyrus import stimulus
+from gyrus import KerasOptimizerSynapse, stimulus, vectorize
+from gyrus.nengo_helpers import explicit_passthrough
 from gyrus.optional import _import_or_fail
 
 
@@ -38,3 +40,25 @@ def test_layer():
         out = y.run(1, 1, simulator=nengo_dl.Simulator)
 
     assert np.allclose(out.squeeze(axis=0), np.exp(u))
+
+
+def test_keras_optimizer_synapse(plt):
+    tf = pytest.importorskip("tensorflow")
+
+    @vectorize
+    def descent(size_out, function, optimizer=tf.keras.optimizers.Adam()):
+        out = explicit_passthrough(size_in=size_out)
+        nengo.Connection(
+            out, out, function=function, synapse=KerasOptimizerSynapse(optimizer)
+        )
+        return out
+
+    # Local optimum of this gradient is (0.5, -0.25).
+    x = descent(2, function=lambda x: [x[0] - 0.5, x[1] + 0.25])
+    with tf.device("/cpu:0"):
+        y = np.asarray(x.run(2))
+
+    plt.plot(y)
+
+    assert np.allclose(y[0], [0, 0])
+    assert np.allclose(y[-1], [0.5, -0.25])

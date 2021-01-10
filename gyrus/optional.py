@@ -1,6 +1,8 @@
 import sys
 
 import nengo
+import numpy as np
+from nengo.rc import rc
 
 from gyrus.auto import vectorize
 from gyrus.base import Operator
@@ -43,3 +45,42 @@ def tensor_node(
     )
     nengo.Connection(node, out, synapse=None)
     return out
+
+
+class KerasOptimizerSynapse(nengo.synapses.Synapse):
+    """Nengo synapse that updates its state using a Keras optimizer.
+
+    This can be used to implement gradient descent over time within the state of a
+    Nengo synapse. [1]_
+
+    References
+    ----------
+    .. [1] Synaptic Descent. US Provisional Patent Application. 63/078,200.
+       Voelker and Eliasmith, 2020.
+    """
+
+    def __init__(self, optimizer, *args, **kwargs):
+        self.optimizer = optimizer
+        self.tf = _import_or_fail(
+            "tensorflow",  # dependency of nengo-dl
+            fail_msg=f"tensorflow is required by the '{type(self)}' synapse",
+        )
+        super().__init__(*args, **kwargs)
+
+    def make_state(self, shape_in, shape_out, dt, dtype=None, y0=0):
+        assert shape_in == shape_out
+        dtype = rc.float_dtype if dtype is None else np.dtype(dtype)
+        X = y0 * np.ones(shape_out, dtype=dtype)
+        return {"X": X}
+
+    def make_step(self, shape_in, shape_out, dt, rng, state):
+        # TODO: This probably doesn't do the right thing if you reset/pickle the
+        #  simulator (since we're creating a new state variable, instead of using the
+        #  underlying signal).
+        x = self.tf.Variable(state["X"])
+
+        def step(t, signal):
+            self.optimizer.apply_gradients([(dt * signal, x)])
+            return x.numpy()
+
+        return step
