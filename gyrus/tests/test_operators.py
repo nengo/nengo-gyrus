@@ -626,7 +626,7 @@ def test_elementwise_multiply():
     y = np.asarray(ab.run(1, 1)).squeeze(axis=0)
     assert y.shape == (d,)
 
-    a2ab = fold([op_a, 2 * op_a]) * b
+    a2ab = fold([op_a, 2 * op_a]).transform(b)
     y2 = np.asarray(a2ab.run(1, 1)).squeeze(axis=1)
     assert np.allclose(y2[0], y)
     assert np.allclose(y2[1], 2 * y2[0])
@@ -662,6 +662,42 @@ def test_multiply_bundle(rng):
 
     assert np.allclose(out_ideal, out1)
     assert np.allclose(out_ideal, out2)
+
+
+def test_multiply_fold_op(rng):
+    a = rng.randn(4, 3)
+    b = rng.randn(1)
+
+    op_a = stimuli(a).configure(neuron_type=nengo.Direct())
+    op_b = stimulus(b)
+    assert isinstance(op_a, Fold)
+    assert not isinstance(op_b, Fold)
+
+    y1 = op_a * op_b
+    out1 = np.asarray(y1.run(1, 1)).squeeze(axis=(-2, -1))
+
+    y2 = op_b * op_a
+    out2 = np.asarray(y2.run(1, 1)).squeeze(axis=(-2, -1))
+
+    assert np.allclose(a * b, out1)
+    assert np.allclose(a * b, out2)
+
+
+def test_multiply_fold_array(rng):
+    a = rng.randn(4)
+    b = rng.randn(2, 3, 4)
+
+    op_a = stimuli(a).configure(neuron_type=nengo.Direct())
+    assert isinstance(op_a, Fold)
+
+    y1 = op_a * b
+    out1 = np.asarray(y1.run(1, 1)).squeeze(axis=(-2, -1))
+
+    y2 = b * op_a
+    out2 = np.asarray(y2.run(1, 1)).squeeze(axis=(-2, -1))
+
+    assert np.allclose(a * b, out1)
+    assert np.allclose(a * b, out2)
 
 
 def test_multiply_invalid():
@@ -736,12 +772,12 @@ def test_sum_dot():
     out1 = np.asarray(y1.run(1, 1)).squeeze(axis=(-2, -1))
     assert np.allclose(out1, y_check)
 
-    y2 = np.sum((stimuli(A).bundle() * np.asarray(x)).unbundle(), axis=1)
+    y2 = np.sum((stimuli(A).bundle().transform(x)).unbundle(), axis=1)
     assert y2.shape == (2,)
     out2 = np.asarray(y2.run(1, 1)).squeeze(axis=(-2, -1))
     assert np.allclose(out1, out2)
 
-    y3 = (stimuli(A).bundle() * np.asarray(x)).transform(np.ones((1, len(x))))
+    y3 = stimuli(A).bundle().transform(x).transform(np.ones((1, len(x))))
     assert y3.shape == (2,)
     out3 = np.asarray(y3.run(1, 1)).squeeze(axis=(-2, -1))
     assert np.allclose(out2, out3)
@@ -757,6 +793,47 @@ def test_add():
 
     a = stimulus(1)
     assert a + 0 is 0 + a is a
+
+
+def test_add_folds(rng):
+    shape = (3, 1, 2)
+
+    a = rng.randn(*shape)
+    b = rng.randn(*shape)
+
+    op_a = stimuli(a)
+    op_b = stimuli(b)
+
+    y1 = op_a + b
+    y2 = b + op_a
+    y3 = op_a + op_b
+
+    out1 = np.asarray(y1.run(1, 1)).squeeze(axis=(-2, -1))
+    out2 = np.asarray(y2.run(1, 1)).squeeze(axis=(-2, -1))
+    out3 = np.asarray(y3.run(1, 1)).squeeze(axis=(-2, -1))
+
+    assert np.allclose(a + b, out1)
+    assert np.allclose(a + b, out2)
+    assert np.allclose(a + b, out3)
+
+
+def test_add_fold_op(rng):
+    a = rng.randn(4, 3)
+    b = rng.randn(1)
+
+    op_a = stimuli(a)
+    op_b = stimulus(b)
+    assert isinstance(op_a, Fold)
+    assert not isinstance(op_b, Fold)
+
+    y1 = op_a + op_b
+    out1 = np.asarray(y1.run(1, 1)).squeeze(axis=(-2, -1))
+
+    y2 = op_b + op_a
+    out2 = np.asarray(y2.run(1, 1)).squeeze(axis=(-2, -1))
+
+    assert np.allclose(a + b, out1)
+    assert np.allclose(a + b, out2)
 
 
 def test_add_invalid():

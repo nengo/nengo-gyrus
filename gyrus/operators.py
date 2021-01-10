@@ -332,9 +332,26 @@ def lti(u, system, state=lambda x: x, dt=0.001, method="zoh"):
     return u.transform(Bmap).integrate(integrand=lambda x: state(x).transform(Amap))
 
 
+def _broadcast_folds(*args):
+    """Broadcasts all folds or arrays against each other, or None if no folds."""
+    new_args = []
+    replaced = False
+    for arg in args:
+        if isinstance(arg, Fold):
+            arg = arg.array
+            replaced = True
+        new_args.append(arg)
+    if not replaced:
+        return None
+    return np.broadcast_arrays(*new_args)
+
+
 @Operator.register_ufunc(np.add)
 def __ufunc_add(a, b):
     """Operator that implements element-wise addition with Gyrus operator(s).
+
+    If either operand is a Gyrus fold, then it is replaced with its underlying
+    array of Gyrus operators to follow NumPy's broadcasting rules for np.add.
 
     If both operands are Gyrus operators, then they are added together by Nengo
     transform(s) that add every dimension, element-wise.
@@ -346,7 +363,10 @@ def __ufunc_add(a, b):
     as the size_out of each element in the other operand, such that the same vector can
     be added to every vector that is produced by the other operand.
     """
-    if isinstance(a, Operator) and isinstance(b, Operator):
+    args = _broadcast_folds(a, b)
+    if args is not None:
+        return asoperator(np.add(*args))
+    elif isinstance(a, Operator) and isinstance(b, Operator):
         return reduce_transform([a, b], trs=[1, 1], axis=0)
     elif isinstance(b, Operator):
         a, b = b, a
@@ -374,14 +394,17 @@ def __ufunc_add(a, b):
             b = asoperator(np.broadcast_to(stimulus(b), shape=a.shape))
         else:
             return NotImplemented
-    elif not isinstance(b, Operator):
-        return NotImplemented
-    return np.add(a, b)  # recurse to first if statement
+        assert isinstance(b, Operator)
+        return np.add(a, b)
+    return NotImplemented
 
 
 @Operator.register_ufunc(np.multiply)
 def __ufunc_multiply(a, b):
     """Operator that implements element-wise multiplication with Gyrus operator(s).
+
+    If either operand is a Gyrus fold, then it is replaced with its underlying
+    array of Gyrus operators to follow NumPy's broadcasting rules for np.multiply.
 
     If both operands are Gyrus operators, then they are multiplied together by using
     ``gyrus.multiply``, which vectorizes an element-wise product network across both
@@ -399,7 +422,10 @@ def __ufunc_multiply(a, b):
     # the other operand. To make the semantics of this unambiguous, in a similar manner
     # to __ufunc_add, only 0D or 1D transforms are currently supported, such that the
     # transform is doing an element-wise multiplication on each element.
-    if isinstance(a, Operator) and isinstance(b, Operator):
+    args = _broadcast_folds(a, b)
+    if args is not None:
+        return asoperator(np.multiply(*args))
+    elif isinstance(a, Operator) and isinstance(b, Operator):
         return multiply(a, b)
     elif isinstance(b, Operator):
         a, b = b, a
