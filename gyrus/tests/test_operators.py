@@ -633,6 +633,28 @@ def test_elementwise_multiply():
     assert np.allclose(a10, a * 10)
 
 
+def test_multiply_bundle(rng):
+    a = rng.randn(4, 3)
+    b = rng.randn(4, 3)
+
+    op_a = stimuli(a).configure(neuron_type=nengo.Direct())
+    op_b = stimuli(b)
+
+    out_ideal = a * b
+
+    y1 = op_a.bundle() * op_b.bundle()
+    assert y1.shape == (4,)
+    assert np.all(y1.size_out == [3, 3, 3, 3])
+    out1 = np.asarray(y1.run(1, 1)).squeeze(axis=-2)
+
+    y2 = op_a * op_b
+    assert y2.shape == (4, 3)
+    out2 = np.asarray(y2.run(1, 1)).squeeze(axis=(-2, -1))
+
+    assert np.allclose(out_ideal, out1)
+    assert np.allclose(out_ideal, out2)
+
+
 def test_multiply_invalid():
     a = stimulus(np.zeros(2))
     b = stimulus(np.zeros(3))
