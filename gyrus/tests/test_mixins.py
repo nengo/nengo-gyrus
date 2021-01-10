@@ -2,7 +2,7 @@ import nengo
 import numpy as np
 import pytest
 
-from gyrus import pre, register_method, register_ufunc, stimulus
+from gyrus import register_method, register_ufunc, stimuli, stimulus
 from gyrus.base import Operator
 
 
@@ -18,13 +18,13 @@ def test_not_probeable():
 
 
 def test_make_no_context():
-    op = pre(0)
+    op = stimulus(0)
     with pytest.raises(RuntimeError, match="make method is meant to be invoked within"):
         op.make()
 
 
 def test_make_cache_basic():
-    a = pre(0.5)
+    a = stimulus(0.5)
     b = a + a.filter(0.1) ** 2 - (0.5 * a) ** 3
     with nengo.Network() as model:
         b.make()
@@ -39,7 +39,7 @@ def test_make_cache_basic():
 
 
 def test_make_context():
-    x = stimulus(0).decode()
+    x = stimuli(0).decode()
 
     with nengo.Network() as model:
         assert model not in Operator._network_to_cache
@@ -66,7 +66,7 @@ def test_make_context():
 
 
 def test_run_context():
-    a = pre(0)
+    a = stimulus(0)
     with nengo.Network() as model:
         with pytest.raises(RuntimeError, match="run method is not meant to be"):
             a.run(1)
@@ -93,6 +93,6 @@ def test_ufunc_already_registered():
 
 
 def test_missing_ufunc():
-    op = pre(6)
+    op = stimulus(6)
     with pytest.raises(TypeError, match="all returned NotImplemented"):
         np.gcd(op, 9)

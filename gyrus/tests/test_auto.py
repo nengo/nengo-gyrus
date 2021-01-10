@@ -2,7 +2,7 @@ import nengo
 import numpy as np
 import pytest
 
-from gyrus import configure, fold, pre, stimulus, vectorize
+from gyrus import configure, fold, stimuli, stimulus, vectorize
 from gyrus.auto import Configure
 from gyrus.base import Operator
 
@@ -14,7 +14,7 @@ def test_invalid_vectorize_op_input():
             return [1, 1]
 
     with pytest.raises(ValueError, match="all input_ops produce an integer size_out"):
-        stimulus(InvalidInput([]))
+        stimuli(InvalidInput([]))
 
 
 def test_invalid_vectorize_op_output():
@@ -32,7 +32,7 @@ def test_invalid_vectorize_folds():
         return a
 
     with pytest.raises(TypeError, match="instantiated with a Fold"):
-        f(stimulus([0, 1]))
+        f(stimuli([0, 1]))
 
 
 def test_invalid_vectorize_folds_jagged():
@@ -41,11 +41,11 @@ def test_invalid_vectorize_folds_jagged():
         return a
 
     with pytest.raises(TypeError, match="instantiated with a Fold"):
-        f(fold([stimulus([0, 1]), stimulus(2)]))
+        f(fold([stimuli([0, 1]), stimuli(2)]))
 
 
 def test_invalid_parameter():
-    stim = stimulus(1)
+    stim = stimuli(1)
     with pytest.raises(ValueError, match="not configurable"):
         stim.configure(dimensions=2)
 
@@ -60,7 +60,7 @@ def test_vectorize_kwargs():
         nengo.Connection(node_b, out, transform=tr, synapse=None)
         return out
 
-    op = f(pre(1), node_b=pre(2), tr=3)
+    op = f(stimulus(1), node_b=stimulus(2), tr=3)
     assert type(op).__name__ == "F"
     assert type(op).__doc__ == "f docstring"
 
@@ -68,7 +68,7 @@ def test_vectorize_kwargs():
 
 
 def test_vectorize_bad_generate():
-    stim = stimulus(0)
+    stim = stimuli(0)
     with pytest.raises(RuntimeError, match="mismatch between number of op_indices"):
         stim.generate(stim)
 
@@ -79,14 +79,14 @@ def test_vectorize_example():
         nengo.Connection(x, y, transform=2, synapse=None)
         return y
 
-    x = stimulus([1, 2, 3])
+    x = stimuli([1, 2, 3])
     y = vectorize(multiply_by_two)(x)
     assert np.all(np.asarray(y.run(1, dt=1)).squeeze(axis=(1, 2)) == [2, 4, 6])
 
 
 def test_config_basic():
     config = dict(n_neurons=400, radius=3, normalize_encoders=False)
-    stim = stimulus(0).configure(**config)
+    stim = stimuli(0).configure(**config)
 
     extra = dict(radius=4, neuron_type=nengo.RectifiedLinear())
     x = stim.decode(**extra)
@@ -104,15 +104,15 @@ def test_config_basic():
 
 
 def test_config_fold():
-    stim = configure(stimulus([0, 1, 2]), n_neurons=250).decode()
+    stim = configure(stimuli([0, 1, 2]), n_neurons=250).decode()
     assert len(stim) == 3
     for op in stim:
         assert op._impl_kwargs == {"n_neurons": 250}
 
 
 def test_config_left_to_right_precedence():
-    x1 = stimulus(0).configure(n_neurons=300)
-    x2 = stimulus(1).configure(n_neurons=500)
+    x1 = stimuli(0).configure(n_neurons=300)
+    x2 = stimuli(1).configure(n_neurons=500)
 
     assert (x1 * x2)._impl_kwargs == {"n_neurons": 300}
     assert (x2 * x1)._impl_kwargs == {"n_neurons": 500}
@@ -122,7 +122,7 @@ def test_config_left_to_right_precedence():
 
 
 def test_config_downstream_precedence():
-    stim = stimulus(0).configure(n_neurons=200)
+    stim = stimuli(0).configure(n_neurons=200)
     assert stim.config == {"n_neurons": 200}
     x = stim.configure(n_neurons=300)
     y = x.transform(2)
@@ -131,7 +131,7 @@ def test_config_downstream_precedence():
     assert Configure.resolve_config([z]) == {"n_neurons": 300}
     assert z in Configure._cache
 
-    a = stimulus(0).configure(n_neurons=400, radius=2)
+    a = stimuli(0).configure(n_neurons=400, radius=2)
     assert Configure.resolve_config([z + a]) == {"n_neurons": 300, "radius": 2}
     assert Configure.resolve_config([a + z]) == {"n_neurons": 400, "radius": 2}
 

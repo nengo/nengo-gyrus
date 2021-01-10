@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from gyrus import pre
+from gyrus import stimulus
 from gyrus.optional import _import_or_fail
 
 
@@ -17,7 +17,7 @@ def test_tensornode():
     import tensorflow as tf  # required by nengo_dl
 
     u = np.linspace(-1, 1, 1000)
-    x = pre(u)
+    x = stimulus(u)
     y = x.tensor_node(tf.exp, pass_time=False)
 
     with tf.device("/cpu:0"):
@@ -31,7 +31,7 @@ def test_layer():
     import tensorflow as tf  # required by nengo_dl
 
     u = np.linspace(-1, 1, 1000)
-    x = pre(u)
+    x = stimulus(u)
     y = x.layer(tf.exp, shape_in=u.shape)
 
     with tf.device("/cpu:0"):

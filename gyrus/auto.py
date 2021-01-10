@@ -295,7 +295,7 @@ def configure(input_op, reset=False, **config):
     Another limitation is that if any Gyrus operators are created within a generate
     call (for example, considering the ``integrand`` option to the integrator) then
     those operators are by default disconnected from the rest of the graph
-    (in the case of the integrator, ``Pre(x)`` creates a disjoint root).
+    (in the case of the integrator, ``Stimulus(x)`` creates a disjoint root).
 
     Configurations obey the following natural rules for precedence:
 

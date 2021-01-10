@@ -23,18 +23,18 @@ def _node_or_identity(output):
         return nengo.Node(output=output)
 
 
-@vectorize("Pre", excluded=[0, "output"])
-def pre(output):
+@vectorize("Stimulus", excluded=[0, "output"])
+def stimulus(output):
     """Operator that supplies input data given a Nengo object or a Node output.
 
-    This is equivalent to ``stimulus`` but won't vectorize its argument. Only a single
-    pre object is produced that supplies the given input, as is. This is primarily
+    This is equivalent to ``stimuli`` but won't vectorize its argument. Only a single
+    stimulus object is produced that supplies the given input, as is. This is primarily
     useful when ``output`` is like an array, and we want to keep it as such as opposed
     to creating a separate operator for each element of ``output``.
     """
     # Nodes are iterable (along the output dimension) due to them implementing
     # __getitem__ and __len__, so they automatically get vectorized by @np.vectorize.
-    # As a result, stimulus(stim) will return a Fold with each element in the fold
+    # As a result, stimuli(stim) will return a Fold with each element in the fold
     # corresponding to an output dimension from stim. This may be okay in some
     # situations. But the workaround for the more typical situation is to provide
     # stim[:] which is not iterable but is awkward and cannot be sliced again
@@ -43,13 +43,13 @@ def pre(output):
     return _node_or_identity(output)
 
 
-@vectorize("Stimulus")
-def stimulus(output):
+@vectorize("Stimuli")
+def stimuli(output):
     """Operator that supplies input data given Nengo objects or Node outputs.
 
-    This is subtly different from ``pre`` in that the input can be vectorized to produce
-    a Fold. For example, if an array is provided then it will be vectorized into a
-    number of one-dimensional nodes. Use ``pre`` if this is not desired.
+    This is subtly different from ``stimulus`` in that the input can be vectorized to
+    produce a Fold. For example, if an array is provided then it will be vectorized into
+    a number of one-dimensional nodes. Use ``stimulus`` if this is not desired.
     """
     return _node_or_identity(output)
 
@@ -64,7 +64,7 @@ def broadcast_scalar(scalar, size_out):
     if not scalar.ndim == 0:
         raise TypeError(f"expected scalar, but got array with shape: {scalar.shape}")
 
-    input_op = pre(scalar)
+    input_op = stimulus(scalar)
 
     def _project(_size_out):
         return input_op.transform(np.ones((_size_out, 1)))
@@ -72,12 +72,12 @@ def broadcast_scalar(scalar, size_out):
     # This is vectorized across the elements of op.size_out. If op is just a basic
     # Operator then this trivially reduces to a single transform. If op is a Fold
     # then the elements of size_out correspond to the size_out of each of its operators
-    # and a separate transform (from the same pre object) is created for each element.
-    # For every repeated value of size_out, the same transform will be recreated.
-    # An optimizer could reuse the transform if it makes sense to (it might not always
-    # make sense to do so, for example, if a scalar is being communicated to multiple
-    # different processing cores and it saves communication to do the transform after
-    # communicating the scalar as opposed to doing it before and communicating a
+    # and a separate transform (from the same stimulus object) is created for each
+    # element. For every repeated value of size_out, the same transform will be
+    # recreated. An optimizer could reuse the transform if it makes sense to (it might
+    # not always make sense to do so, for example, if a scalar is being communicated to
+    # multiple different processing cores and it saves communication to do the transform
+    # after communicating the scalar as opposed to doing it before and communicating a
     # high-dimensional vector to each core.
     return asoperator(np.vectorize(_project, otypes=[Transforms])(_size_out=size_out))
 
@@ -262,7 +262,7 @@ def integrate(u, integrand=None):
         # dependencies that may have already been built into a different subnetwork!
         # Only dependencies that have already been generated into the current Nengo
         # context will not be regenerated.
-        op_dot_x = integrand(pre(x))
+        op_dot_x = integrand(stimulus(x))
         dot_x = op_dot_x.make()
         if not isinstance(dot_x, nengo.Node):
             raise TypeError(
@@ -275,8 +275,8 @@ def integrate(u, integrand=None):
             )
         nengo.Connection(dot_x, x, synapse=integrator)
 
-        # If op_dot_x.make() recurses back to pre(x), then it can set the label
-        # to Pre() but we'd like it to be set according to str(op) where op is the
+        # If op_dot_x.make() recurses back to stimulus(x), then it can set the label
+        # to Stimulus() but we'd like it to be set according to str(op) where op is the
         # current Integrate operator. Setting the label back to None and returning
         # x will achieve this.
         if x.label is not None:
@@ -288,7 +288,7 @@ def integrate(u, integrand=None):
 def lti(u, system, state=lambda x: x, dt=0.001, method="zoh"):
     r"""Operator that solves \dot{x} = A.state(x) + B.u. where A, B = system.
 
-    The state parameter can be any callable function that consumes a Pre operator
+    The state parameter can be any callable function that consumes a Stimulus operator
     and produces a Gyrus operator that consumes said operator as an input. For instance,
     nonlinear dynamical systems may be implemented by specifying a nonlinear function
     for the ``state``.
@@ -371,7 +371,7 @@ def __ufunc_add(a, b):
                     f"add size mismatch for a (operator) + b (array): "
                     f"a.size_out ({a.size_out}) must match len(b) ({len(b)})"
                 )
-            b = asoperator(np.broadcast_to(pre(b), shape=a.shape))
+            b = asoperator(np.broadcast_to(stimulus(b), shape=a.shape))
         else:
             return NotImplemented
     elif not isinstance(b, Operator):
