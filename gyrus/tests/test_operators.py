@@ -1,11 +1,12 @@
 import nengo
 import numpy as np
 import pytest
-from nengo.utils.numpy import rms
+from nengo.utils.numpy import is_array, rms
 
 from gyrus import broadcast_scalar, bundle, convolve, fold, pre, probe, stimulus
 from gyrus.auto import Configure
-from gyrus.operators import Transforms
+from gyrus.base import Operator
+from gyrus.operators import Transforms, _Fold_array_functions
 
 
 def setup_module():
@@ -909,3 +910,106 @@ def test_direct_ufuncs(ufunc):
     )
     y = ufunc(x)
     assert np.allclose(y.run(1).squeeze(axis=-1), ufunc(u))
+
+
+class _Closure:
+    """Encapsulates args and kwargs and creates folds out of NumPy arrays."""
+
+    def __init__(self, *args, folded_args=None, folded_kwargs=None, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
+
+        if folded_args is None:
+            folded_args = tuple(map(self._lift_arg, args))
+        self.folded_args = folded_args
+
+        if folded_kwargs is None:
+            folded_kwargs = {
+                key: self._lift_arg(kwarg) for key, kwarg in kwargs.items()
+            }
+        self.folded_kwargs = folded_kwargs
+
+    @classmethod
+    def _lift_arg(cls, arg):
+        # A bit like the inverse of base.py::lower_folds::_lower_arg except direct mode
+        # stimuli are automatically created from arrays for testing convenience.
+        if is_array(arg):
+            return stimulus(arg).configure(neuron_type=nengo.Direct())
+        if isinstance(arg, (tuple, list)):
+            return type(arg)(map(cls._lift_arg, arg))
+        return arg
+
+
+@pytest.mark.parametrize("array_function", _Fold_array_functions)
+def test_array_functions(array_function):
+    a = np.arange(3 * 1 * 5).reshape((3, 1, 5))
+    b = a * 2 + 1
+    c = np.arange(5)
+    func1d = sum
+    axis = -1
+    indices_or_sections = 1
+    newshape = (1, 15)
+
+    closures = {
+        # Functional programming routines
+        np.apply_along_axis: _Closure(func1d, arr=a, axis=axis),
+        # Math routines
+        np.dot: _Closure(a, c),
+        np.mean: _Closure(a),
+        np.outer: _Closure(c, c),
+        np.prod: _Closure(a, axis=1),
+        np.sum: _Closure(a, axis=0),
+        # Changing array shape
+        np.reshape: _Closure(a, newshape=newshape),
+        np.ravel: _Closure(a),
+        # Transpose-like operations
+        np.moveaxis: _Closure(a, source=0, destination=-1),
+        np.rollaxis: _Closure(a, axis=1),
+        np.swapaxes: _Closure(a, axis1=-1, axis2=1),
+        np.transpose: _Closure(a, axes=(1, 0, 2)),
+        # Changing number of dimensions
+        np.atleast_1d: _Closure(a),
+        np.atleast_2d: _Closure(a),
+        np.atleast_3d: _Closure(a),
+        np.broadcast_to: _Closure(a, shape=(7,) + a.shape),
+        np.broadcast_arrays: _Closure(a, b),
+        np.expand_dims: _Closure(a, axis=3),
+        np.squeeze: _Closure(a, axis=1),
+        # Joining arrays
+        np.concatenate: _Closure((a, b)),
+        np.stack: _Closure((a, b)),
+        np.block: _Closure([a, b]),
+        np.vstack: _Closure((a, b)),
+        np.hstack: _Closure((a, b)),
+        np.dstack: _Closure((a, b)),
+        np.column_stack: _Closure((a, b)),
+        # Splitting arrays
+        np.split: _Closure(a, indices_or_sections=indices_or_sections),
+        np.array_split: _Closure(a, indices_or_sections=indices_or_sections),
+        np.dsplit: _Closure(a, indices_or_sections=indices_or_sections),
+        np.hsplit: _Closure(a, indices_or_sections=indices_or_sections),
+        np.vsplit: _Closure(a, indices_or_sections=indices_or_sections),
+        # Tiling arrays
+        np.tile: _Closure(a, reps=2),
+        np.repeat: _Closure(a, repeats=2),
+        # Rearranging elements
+        np.flip: _Closure(a),
+        np.fliplr: _Closure(a),
+        np.flipud: _Closure(a),
+        np.reshape: _Closure(a, newshape=newshape),
+        np.roll: _Closure(a, shift=1),
+        np.rot90: _Closure(a),
+    }
+
+    if array_function not in closures:
+        pytest.fail()
+
+    else:
+        closure = closures[array_function]
+
+        op = array_function(*closure.folded_args, **closure.folded_kwargs)
+        assert isinstance(op, Operator)
+        ideal = array_function(*closure.args, **closure.kwargs)
+
+        out = np.asarray(op.run(1, 1)).squeeze(axis=(-2, -1))
+        assert np.allclose(out, ideal)

@@ -168,7 +168,7 @@ class Fold(Operator):
     @cached_property
     def array(self):
         """Returns the structure of input operators as an immutable NumPy array."""
-        arr = np.asarray(self.input_ops, dtype=type(self))
+        arr = np.asarray(self, dtype=type(self))
         arr.flags.writeable = False  # safety precaution
         return arr
 
@@ -245,21 +245,33 @@ def lower_folds(function):
     inference machinery to work as intended with overloaded operators.
     """
 
+    def _lower_arg(arg):
+        if isinstance(arg, Fold):
+            # For most NumPy functions returning arg.input_ops would be sufficient
+            # as NumPy can appropriately (and recursively) iterate over the tuple
+            # of operators/folds. However, some functions such as np.split expect a
+            # tuple of np.ndarray and so the return type needs to be an ndarray.
+            return arg.array
+        if isinstance(arg, (tuple, list)):
+            if any(isinstance(sub_arg, Fold) for sub_arg in arg):
+                return type(arg)(map(_lower_arg, arg))
+        return arg
+
     @wraps(function)
     def wrapper(*args, **kwargs):
         replaced = False
         new_args = []
         for arg in args:
-            if isinstance(arg, Fold):
-                arg = arg.array
+            new_arg = _lower_arg(arg)
+            if new_arg is not arg:
                 replaced = True
-            new_args.append(arg)
+            new_args.append(new_arg)
         new_kwargs = {}
-        for k, v in kwargs.items():
-            if isinstance(v, Fold):
-                v = v.array
+        for key, kwarg in kwargs.items():
+            new_kwarg = _lower_arg(kwarg)
+            if new_kwarg is not kwarg:
                 replaced = True
-            new_kwargs[k] = v
+            new_kwargs[key] = new_kwarg
         if not replaced:
             return NotImplemented
         return asoperator(function(*new_args, **new_kwargs))

@@ -137,3 +137,13 @@ def test_lower_folds():
 
     f(stimulus(np.ones((3, 1))))
     f(pre(0), b=stimulus(np.ones((3, 1))))
+
+
+def test_lower_folds_recursive():
+    @lower_folds
+    def f(a):
+        assert isinstance(a, list)
+        assert not any(isinstance(a_i, Fold) for a_i in a)
+        return a
+
+    f([stimulus(np.ones((3, 1))), stimulus(np.ones((3, 1)))])
