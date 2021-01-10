@@ -54,7 +54,7 @@ def test_keras_optimizer_synapse(plt):
         return out
 
     # Local optimum of this gradient is (0.5, -0.25).
-    x = descent(2, function=lambda x: [x[0] - 0.5, x[1] + 0.25])
+    x = descent(2, function=lambda x: [0.5 - x[0], -0.25 - x[1]])
     with tf.device("/cpu:0"):
         y = np.asarray(x.run(2))
 

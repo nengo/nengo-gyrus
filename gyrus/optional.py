@@ -51,7 +51,10 @@ class KerasOptimizerSynapse(nengo.synapses.Synapse):
     """Nengo synapse that updates its state using a Keras optimizer.
 
     This can be used to implement gradient descent over time within the state of a
-    Nengo synapse. [1]_
+    Nengo synapse. [1]_ Note that the gradient's sign is flipped from the usual
+    convention in Keras/TensorFlow, and scaled by the time-step (``dt``). This makes it
+    somewhat interchangeable with typical synapses in Nengo within the context of
+    Principle 3 from the Neural Engineering Framework.
 
     References
     ----------
@@ -80,7 +83,7 @@ class KerasOptimizerSynapse(nengo.synapses.Synapse):
         x = self.tf.Variable(state["X"])
 
         def step(t, signal):
-            self.optimizer.apply_gradients([(dt * signal, x)])
+            self.optimizer.apply_gradients([(-dt * signal, x)])
             return x.numpy()
 
         return step
