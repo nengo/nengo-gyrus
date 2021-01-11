@@ -87,3 +87,32 @@ class KerasOptimizerSynapse(nengo.synapses.Synapse):
             return x.numpy()
 
         return step
+
+
+# Explicitly copy the signature since functools.wraps would require the tf module to
+# already be in the namespace, and that is an optional dependency.
+def Adam(
+    learning_rate=0.001,
+    beta_1=0.9,
+    beta_2=0.999,
+    epsilon=1e-07,
+    amsgrad=False,
+    name="Adam",
+    **kwargs,
+):
+    """Wraps the ``tf.keras.optimizers.Adam`` optimizer in a Nengo synapse."""
+    tf = _import_or_fail(
+        "tensorflow",  # dependency of nengo-dl
+        fail_msg=f"tensorflow is required by the Adam optimizer",
+    )
+    return KerasOptimizerSynapse(
+        optimizer=tf.keras.optimizers.Adam(
+            learning_rate=learning_rate,
+            beta_1=beta_1,
+            beta_2=beta_2,
+            epsilon=epsilon,
+            amsgrad=amsgrad,
+            name=name,
+            **kwargs,
+        )
+    )
