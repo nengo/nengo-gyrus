@@ -38,7 +38,7 @@ An example of computing the square of a two-dimensional vector with Gyrus:
 This code is automagically converted to `Nengo <http://nengo.ai/>`_ and implemented
 via two spiking LIF ensembles and a lowpass synapse.
 
-Gyrus supports many common Numpy 'ufuncs', array functions, and numeric Python
+Gyrus supports many common NumPy 'ufuncs', array functions, and numeric Python
 operators. Thus, code can be written in a functional style using N-D arrays and then
 realized as a Nengo neural network. This enables algorithms to be written in NumPy and
 then compiled onto `Nengo's supported backends <https://www.nengo.ai/documentation/>`_
