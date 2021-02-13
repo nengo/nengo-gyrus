@@ -187,9 +187,9 @@ def vectorize(
         # be vectorized by np.vectorize as it also looks for __len__ to determine
         # whether to vectorize an element, which is currently supported by Fold
         # but not Operator.
-        vectorized = np.vectorize(
-            instantiate, otypes=[cls], *vectorize_args, **vectorize_kwargs
-        )
+        # TODO: Ideally we would specify otypes=[cls] but this fails due to a bug
+        #  in earlier versions of NumPy: https://github.com/numpy/numpy/issues/16120.
+        vectorized = np.vectorize(instantiate, *vectorize_args, **vectorize_kwargs)
 
         # The actual implementation (i.e., the returned wrapper) does the vectorization
         # and then converts the array output into a Fold -- unless it is just a single

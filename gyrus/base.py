@@ -168,7 +168,7 @@ class Fold(Operator):
     @cached_property
     def array(self):
         """Returns the structure of input operators as an immutable NumPy array."""
-        arr = np.asarray(self, dtype=type(self))
+        arr = np.asarray(self.input_ops, dtype=type(self))
         arr.flags.writeable = False  # safety precaution
         return arr
 
