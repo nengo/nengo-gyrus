@@ -41,7 +41,10 @@ def tensor_node(
         fail_msg="nengo_dl.TensorNode is required by the 'tensor_node' operator",
     )
     out = nengo_dl.TensorNode(
-        tensor_func, shape_in=(node.size_out,), shape_out=shape_out, pass_time=pass_time
+        tensor_func,
+        shape_in=(node.size_out,),
+        shape_out=shape_out,
+        pass_time=bool(pass_time),  # https://github.com/nengo/nengo/issues/1667
     )
     nengo.Connection(node, out, synapse=None)
     return out
